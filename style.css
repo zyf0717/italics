@@ -124,7 +124,7 @@ body {
 
 .italics-layout > div {
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: 1fr;
   min-height: 0;
 }
 
@@ -192,12 +192,11 @@ button:disabled {
 }
 
 .meta-summary-wrap {
-  display: flex;
-  flex-direction: column;
+  display: contents;
 }
 
 #meta-summary {
-  height: 7.5rem;
+  height: 13rem;
   font-family: inherit;
   line-height: 1.6;
 }
@@ -231,7 +230,7 @@ button:disabled {
 
 .meta-output-wrap {
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: 1fr;
   min-height: 0;
 }
 

@@ -19,12 +19,10 @@
     <section id="tab-italics" class="tab-panel" role="tabpanel" aria-labelledby="tab-italics">
       <div class="italics-layout">
         <div>
-          <label for="input">Enter text</label>
-          <textarea id="input" placeholder="Type here..."></textarea>
+          <textarea id="input" placeholder="Type here…"></textarea>
         </div>
         <div>
-          <label for="output">Italicized output</label>
-          <textarea id="output" readonly></textarea>
+          <textarea id="output" readonly placeholder="Italicized output will appear here…"></textarea>
         </div>
         <button id="copyBtn" type="button">Copy output</button>
       </div>
@@ -43,7 +41,6 @@
         <p id="meta-status" class="meta-status">No image loaded.</p>
 
         <div class="meta-summary-wrap">
-          <label for="meta-summary">Settings</label>
           <textarea id="meta-summary" readonly placeholder="Settings will appear here…"></textarea>
         </div>
 
@@ -51,6 +48,8 @@
           <label class="tog-label"><input type="checkbox" id="tog-location" checked> Location</label>
           <label class="tog-label"><input type="checkbox" id="tog-gear"     checked> Gear</label>
           <label class="tog-label"><input type="checkbox" id="tog-tags"     checked> Tags</label>
+          <label class="tog-label"><input type="checkbox" id="tog-dotsight"> Dot Sight</label>
+          <label class="tog-label"><input type="checkbox" id="tog-tripod"> Tripod</label>
           <span class="tog-sep"></span>
           <label class="tog-label"><input type="radio" name="tog-platform" id="tog-instagram" checked> Instagram</label>
           <label class="tog-label"><input type="radio" name="tog-platform" id="tog-rednote"> RedNote</label>
@@ -59,8 +58,7 @@
         <button id="meta-summaryCopyBtn" type="button" disabled>Copy settings</button>
 
         <div class="meta-output-wrap">
-          <label for="meta-output">Full EXIF</label>
-          <textarea id="meta-output" readonly placeholder="Metadata will appear here…"></textarea>
+          <textarea id="meta-output" readonly placeholder="EXIF data will appear here…"></textarea>
         </div>
 
         <button id="meta-copyBtn" type="button" disabled>Copy EXIF</button>

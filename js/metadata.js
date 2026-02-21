@@ -16,7 +16,7 @@ const BODY_PRESETS = [
   { match: (b) => /Z\s*6\s*(iii|3)/i.test(b),    instagram: "Nikon Z6III",       rednote: "\u5C3C\u5EB7 Z6III" },
   { match: (b) => /Z\s*6\s*(ii|2)/i.test(b),     instagram: "Nikon Z6II",        rednote: "\u5C3C\u5EB7 Z6II"  },
   { match: (b) => /OM.?(Digital.Solutions|System).*OM.?1/i.test(b) || /^OM.?1$/i.test(b),
-                                          instagram: "OM System OM-1",    rednote: "\u5965\u5DF4 OM-1"  },
+                                          instagram: "OM-1",             rednote: "\u5965\u5DF4 OM-1"  },
 ];
 
 /**
@@ -26,7 +26,8 @@ const LENS_PRESETS = [
   { match: (l) => /180.?600/i.test(l),                          instagram: "180-600mm f/5.6-6.3",              rednote: "180-600mm f/5.6-6.3"                },
   { match: (l) => /800/i.test(l),                               instagram: "800mm f/6.3 PF",                   rednote: "800mm f/6.3 PF"                     },
   { match: (l) => /500/i.test(l),                               instagram: "500mm f/5.6 PF",                   rednote: "500mm f/5.6 PF"                     },
-  { match: (l) => /100.?400/i.test(l) && /leica|dg/i.test(l),  instagram: "Leica DG 100-400mm f/4-6.3 II",    rednote: "松徕 100-400mm f/4-6.3 II" },
+  { match: (l) => /M\.?300|olympus.*300/i.test(l),              instagram: "300mm f/4 PRO",                    rednote: "300mm f/4 PRO"                      },
+  { match: (l) => /100.?400/i.test(l) && /leica|dg/i.test(l),   instagram: "Leica DG 100-400mm f/4-6.3 II",    rednote: "松徕 100-400mm f/4-6.3 II" },
   { match: (l) => /100.?400/i.test(l),                          instagram: "NIKKOR Z 100-400mm f/4.5-5.6 VR S", rednote: "NIKKOR Z 100-400mm f/4.5-5.6 VR S" },
 ];
 
@@ -92,7 +93,7 @@ const ASIA_COUNTRY_CODES = new Set([
   "kz","uz","tm","kg","tj",
 ]);
 
-const INSTAGRAM_TAGS_BASE = "@natgeo @natgeoanimals @natgeoasia @natgeoyourshot @bbcearth";
+const INSTAGRAM_TAGS_BASE = "@natgeo @natgeoanimals @natgeoyourshot @bbcearth";
 
 const REDNOTE_BODY_TAGS = [
   { match: (b) => /Z\s*8/i.test(b),            tag: "#尼康Z8"    },
@@ -109,7 +110,7 @@ const REDNOTE_BODY_TAGS = [
  * @returns {string}
  */
 function buildSummary(data, location, opts = {}) {
-  const { showLocation = true, showGear = true, showTags = true, platform = "instagram" } = opts;
+  const { showLocation = true, showGear = true, showTags = true, tripod = false, dotSight = false, platform = "instagram" } = opts;
   const { place = "", countryCode = "" } = location;
 
   const lines = [];
@@ -132,7 +133,7 @@ function buildSummary(data, location, opts = {}) {
     const model = String(data.Model || "").replace(/\0/g, "").trim();
     const body  = (model.toLowerCase().startsWith(make.toLowerCase()) ? model : `${make} ${model}`).trim();
     const lens  = String(data.LensModel || "").replace(/\0/g, "").trim();
-    const camera = resolveGear(body, lens, platform);
+    const camera = resolveGear(body, lens, platform) + (dotSight ? " + DF-M1" : "");
     lines.push(`\u{1F4F7}: ${camera}`);
 
     // ⚙️ Shooting settings
@@ -140,16 +141,17 @@ function buildSummary(data, location, opts = {}) {
     const aperture = data.FNumber     != null ? `f/${data.FNumber}` : null;
     const shutter  = formatShutterSpeed(data.ExposureTime);
     const iso      = data.ISO         != null ? `ISO ${data.ISO}` : null;
-    lines.push(`\u2699\uFE0F: ${[focal, aperture, shutter, iso].filter(Boolean).join(" | ")}`);
+    const handheld = tripod ? (platform === "rednote" ? "三角架" : "Tripod") : (platform === "rednote" ? "手持" : "Handheld");
+    lines.push(`\u2699\uFE0F: ${[focal, aperture, shutter, iso, handheld].filter(Boolean).join(" | ")}`);
   }
 
   // Platform tags
   if (showTags) {
     if (platform === "instagram") {
       const regional = countryCode === "sg"
-        ? "@nikonsg @nikonasia @nparksbuzz "
+        ? "@nikonsg @nikonasia @nparksbuzz @natgeoasia "
         : ASIA_COUNTRY_CODES.has(countryCode)
-          ? "@nikonasia "
+          ? "@nikonasia @natgeoasia "
           : "";
       lines.push("", regional + INSTAGRAM_TAGS_BASE);
     } else {
@@ -197,6 +199,8 @@ export function initMetadataTab() {
   const togLocation  = document.getElementById("tog-location");
   const togGear      = document.getElementById("tog-gear");
   const togTags      = document.getElementById("tog-tags");
+  const togDotSight  = document.getElementById("tog-dotsight");
+  const togTripod    = document.getElementById("tog-tripod");
   const togInstagram = document.getElementById("tog-instagram");
   const togRednote   = document.getElementById("tog-rednote");
 
@@ -209,6 +213,8 @@ export function initMetadataTab() {
       showLocation: togLocation.checked,
       showGear:     togGear.checked,
       showTags:     togTags.checked,
+      dotSight:     togDotSight.checked,
+      tripod:       togTripod.checked,
       platform:     togInstagram.checked ? "instagram" : "rednote",
     };
   }
@@ -219,7 +225,7 @@ export function initMetadataTab() {
     summaryCopy.disabled = false;
   }
 
-  [togLocation, togGear, togTags, togInstagram, togRednote].forEach(el =>
+  [togLocation, togGear, togTags, togDotSight, togTripod, togInstagram, togRednote].forEach(el =>
     el.addEventListener("change", refreshSummary)
   );
 
