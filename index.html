@@ -42,12 +42,28 @@
 
         <p id="meta-status" class="meta-status">No image loaded.</p>
 
+        <div class="meta-summary-wrap">
+          <label for="meta-summary">Settings</label>
+          <textarea id="meta-summary" readonly placeholder="Settings will appear here…"></textarea>
+        </div>
+
+        <div class="meta-toggles">
+          <label class="tog-label"><input type="checkbox" id="tog-location" checked> Location</label>
+          <label class="tog-label"><input type="checkbox" id="tog-gear"     checked> Gear</label>
+          <label class="tog-label"><input type="checkbox" id="tog-tags"     checked> Tags</label>
+          <span class="tog-sep"></span>
+          <label class="tog-label"><input type="radio" name="tog-platform" id="tog-instagram" checked> Instagram</label>
+          <label class="tog-label"><input type="radio" name="tog-platform" id="tog-rednote"> RedNote</label>
+        </div>
+
+        <button id="meta-summaryCopyBtn" type="button" disabled>Copy settings</button>
+
         <div class="meta-output-wrap">
-          <label for="meta-output">EXIF metadata</label>
+          <label for="meta-output">Full EXIF</label>
           <textarea id="meta-output" readonly placeholder="Metadata will appear here…"></textarea>
         </div>
 
-        <button id="meta-copyBtn" type="button" disabled>Copy metadata</button>
+        <button id="meta-copyBtn" type="button" disabled>Copy EXIF</button>
 
       </div>
     </section>
