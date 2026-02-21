@@ -1,0 +1,161 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Italics Tool</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #d1d5db;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, #f9fafb 0%, var(--bg) 100%);
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+    }
+
+    .app {
+      width: min(760px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    }
+
+    h1 {
+      margin: 0 0 0.75rem;
+      font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+    }
+
+    .row {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      resize: vertical;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.7rem 0.8rem;
+      font: inherit;
+      line-height: 1.45;
+    }
+
+    #output {
+      font-style: italic;
+      background: #fbfdff;
+    }
+
+    button {
+      justify-self: start;
+      border: 0;
+      border-radius: 10px;
+      padding: 0.6rem 0.9rem;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: var(--accent-hover);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    @media (max-width: 600px) {
+      .app {
+        padding: 0.85rem;
+      }
+
+      textarea {
+        min-height: 105px;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" aria-label="Italic text generator">
+    <h1>Italic Text Generator</h1>
+    <div class="row">
+      <div>
+        <label for="input">Enter text</label>
+        <textarea id="input" placeholder="Type here..."></textarea>
+      </div>
+      <div>
+        <label for="output">Italicized output</label>
+        <textarea id="output" readonly></textarea>
+      </div>
+      <button id="copyBtn" type="button">Copy output</button>
+    </div>
+  </main>
+
+  <script>
+    const input = document.getElementById("input");
+    const output = document.getElementById("output");
+    const copyBtn = document.getElementById("copyBtn");
+
+    function syncOutput() {
+      output.value = input.value;
+      copyBtn.disabled = output.value.trim().length === 0;
+    }
+
+    async function copyOutput() {
+      if (!output.value) {
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(output.value);
+        const oldLabel = copyBtn.textContent;
+        copyBtn.textContent = "Copied";
+        setTimeout(() => {
+          copyBtn.textContent = oldLabel;
+        }, 1000);
+      } catch {
+        output.select();
+        document.execCommand("copy");
+      }
+    }
+
+    input.addEventListener("input", syncOutput);
+    copyBtn.addEventListener("click", copyOutput);
+    syncOutput();
+  </script>
+</body>
+</html>
