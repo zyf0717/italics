@@ -26,7 +26,7 @@ const LENS_PRESETS = [
   { match: (l) => /180.?600/i.test(l),                          instagram: "180-600mm f/5.6-6.3",              rednote: "180-600mm f/5.6-6.3"                },
   { match: (l) => /800/i.test(l),                               instagram: "800mm f/6.3 PF",                   rednote: "800mm f/6.3 PF"                     },
   { match: (l) => /500/i.test(l),                               instagram: "500mm f/5.6 PF",                   rednote: "500mm f/5.6 PF"                     },
-  { match: (l) => /100.?400/i.test(l) && /leica|dg/i.test(l),  instagram: "Leica DG 100-400mm f/4-6.3 II",    rednote: "\u677E\u5FB5 100-400mm f/4-6.3 II" },
+  { match: (l) => /100.?400/i.test(l) && /leica|dg/i.test(l),  instagram: "Leica DG 100-400mm f/4-6.3 II",    rednote: "松徕 100-400mm f/4-6.3 II" },
   { match: (l) => /100.?400/i.test(l),                          instagram: "NIKKOR Z 100-400mm f/4.5-5.6 VR S", rednote: "NIKKOR Z 100-400mm f/4.5-5.6 VR S" },
 ];
 
