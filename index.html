@@ -4,190 +4,72 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Italics Tool</title>
-  <style>
-    :root {
-      color-scheme: light;
-      --bg: #f6f7fb;
-      --panel: #ffffff;
-      --text: #1f2937;
-      --muted: #6b7280;
-      --border: #d1d5db;
-      --accent: #2563eb;
-      --accent-hover: #1d4ed8;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      height: 100vh;
-      height: 100dvh;
-      font-family: "Segoe UI", Tahoma, sans-serif;
-      color: var(--text);
-      background: linear-gradient(180deg, #f9fafb 0%, var(--bg) 100%);
-      display: flex;
-      justify-content: center;
-      align-items: stretch;
-      padding: 0.75rem;
-      overflow: hidden;
-    }
-
-    .app {
-      width: min(760px, 100%);
-      height: 100%;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1rem;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-      display: flex;
-      flex-direction: column;
-    }
-
-    h1 {
-      margin: 0 0 0.75rem;
-      font-size: clamp(1.1rem, 2.5vw, 1.35rem);
-    }
-
-    .row {
-      display: grid;
-      gap: 0.75rem;
-      grid-template-rows: 1fr 1fr auto;
-      flex: 1;
-      min-height: 0;
-    }
-
-    .row > div {
-      display: grid;
-      grid-template-rows: auto 1fr;
-      min-height: 0;
-    }
-
-    label {
-      display: block;
-      font-size: 0.9rem;
-      color: var(--muted);
-      margin-bottom: 0.35rem;
-    }
-
-    textarea {
-      width: 100%;
-      min-height: 0;
-      height: 100%;
-      resize: none;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0.7rem 0.8rem;
-      font: inherit;
-      line-height: 1.45;
-    }
-
-    #output {
-      background: #fbfdff;
-    }
-
-    button {
-      justify-self: start;
-      border: 0;
-      border-radius: 10px;
-      padding: 0.6rem 0.9rem;
-      background: var(--accent);
-      color: #fff;
-      font: inherit;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: var(--accent-hover);
-    }
-
-    button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    @media (max-width: 600px) {
-      body {
-        padding: 0.5rem;
-      }
-
-      .app {
-        padding: 0.85rem;
-      }
-
-      button {
-        width: 100%;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main class="app" aria-label="Italic text generator">
-    <h1>Italic Text Generator</h1>
-    <div class="row">
-      <div>
-        <label for="input">Enter text</label>
-        <textarea id="input" placeholder="Type here..."></textarea>
+
+    <!-- Tab bar -->
+    <nav class="tabs" role="tablist" aria-label="Tool tabs">
+      <button class="tab-btn" role="tab" data-tab="italics"  aria-selected="true">Italics</button>
+      <button class="tab-btn" role="tab" data-tab="metadata" aria-selected="false">Metadata</button>
+    </nav>
+
+    <!-- Tab 1 · Italics -->
+    <section id="tab-italics" class="tab-panel" role="tabpanel" aria-labelledby="tab-italics">
+      <div class="italics-layout">
+        <div>
+          <label for="input">Enter text</label>
+          <textarea id="input" placeholder="Type here..."></textarea>
+        </div>
+        <div>
+          <label for="output">Italicized output</label>
+          <textarea id="output" readonly></textarea>
+        </div>
+        <button id="copyBtn" type="button">Copy output</button>
       </div>
-      <div>
-        <label for="output">Italicized output</label>
-        <textarea id="output" readonly></textarea>
+    </section>
+
+    <!-- Tab 2 · Metadata -->
+    <section id="tab-metadata" class="tab-panel" role="tabpanel" aria-labelledby="tab-metadata">
+
+      <div class="metadata-grid">
+        <div class="meta-card">
+          <div class="meta-label">Characters</div>
+          <div class="meta-value" id="meta-chars">0</div>
+        </div>
+        <div class="meta-card">
+          <div class="meta-label">Words</div>
+          <div class="meta-value" id="meta-words">0</div>
+        </div>
+        <div class="meta-card">
+          <div class="meta-label">Lines</div>
+          <div class="meta-value" id="meta-lines">0</div>
+        </div>
+        <div class="meta-card">
+          <div class="meta-label">Converted</div>
+          <div class="meta-value" id="meta-converted">0</div>
+        </div>
       </div>
-      <button id="copyBtn" type="button">Copy output</button>
-    </div>
+
+      <div class="meta-breakdown">
+        <table>
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Count</th>
+              <th>Share</th>
+            </tr>
+          </thead>
+          <tbody id="meta-tbody"></tbody>
+        </table>
+      </div>
+      <p class="meta-empty" id="meta-empty">Type something in the Italics tab to see statistics.</p>
+
+    </section>
+
   </main>
 
-  <script>
-    const input = document.getElementById("input");
-    const output = document.getElementById("output");
-    const copyBtn = document.getElementById("copyBtn");
-
-    const italicMap = new Map();
-
-    for (let i = 0; i < 26; i += 1) {
-      italicMap.set(
-        String.fromCharCode(65 + i),
-        String.fromCodePoint(0x1d608 + i)
-      );
-      italicMap.set(
-        String.fromCharCode(97 + i),
-        String.fromCodePoint(0x1d622 + i)
-      );
-    }
-
-    function toUnicodeItalic(text) {
-      return Array.from(text, (char) => italicMap.get(char) ?? char).join("");
-    }
-
-    function syncOutput() {
-      output.value = toUnicodeItalic(input.value);
-      copyBtn.disabled = output.value.trim().length === 0;
-    }
-
-    async function copyOutput() {
-      if (!output.value) {
-        return;
-      }
-
-      try {
-        await navigator.clipboard.writeText(output.value);
-        const oldLabel = copyBtn.textContent;
-        copyBtn.textContent = "Copied";
-        setTimeout(() => {
-          copyBtn.textContent = oldLabel;
-        }, 1000);
-      } catch {
-        output.select();
-        document.execCommand("copy");
-      }
-    }
-
-    input.addEventListener("input", syncOutput);
-    copyBtn.addEventListener("click", copyOutput);
-    syncOutput();
-  </script>
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>
