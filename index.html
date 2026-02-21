@@ -32,40 +32,24 @@
 
     <!-- Tab 2 · Metadata -->
     <section id="tab-metadata" class="tab-panel" role="tabpanel" aria-labelledby="tab-metadata">
+      <div class="meta-layout">
 
-      <div class="metadata-grid">
-        <div class="meta-card">
-          <div class="meta-label">Characters</div>
-          <div class="meta-value" id="meta-chars">0</div>
+        <div id="meta-dropzone" class="meta-dropzone" tabindex="0"
+             role="button" aria-label="Upload a JPEG image to read its metadata">
+          <span class="meta-drop-text">Click or drop a <strong>JPG</strong> image here</span>
+          <input id="meta-file" type="file" accept=".jpg,.jpeg,image/jpeg" hidden>
         </div>
-        <div class="meta-card">
-          <div class="meta-label">Words</div>
-          <div class="meta-value" id="meta-words">0</div>
+
+        <p id="meta-status" class="meta-status">No image loaded.</p>
+
+        <div class="meta-output-wrap">
+          <label for="meta-output">EXIF metadata</label>
+          <textarea id="meta-output" readonly placeholder="Metadata will appear here…"></textarea>
         </div>
-        <div class="meta-card">
-          <div class="meta-label">Lines</div>
-          <div class="meta-value" id="meta-lines">0</div>
-        </div>
-        <div class="meta-card">
-          <div class="meta-label">Converted</div>
-          <div class="meta-value" id="meta-converted">0</div>
-        </div>
+
+        <button id="meta-copyBtn" type="button" disabled>Copy metadata</button>
+
       </div>
-
-      <div class="meta-breakdown">
-        <table>
-          <thead>
-            <tr>
-              <th>Type</th>
-              <th>Count</th>
-              <th>Share</th>
-            </tr>
-          </thead>
-          <tbody id="meta-tbody"></tbody>
-        </table>
-      </div>
-      <p class="meta-empty" id="meta-empty">Type something in the Italics tab to see statistics.</p>
-
     </section>
 
   </main>

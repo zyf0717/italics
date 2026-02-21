@@ -7,7 +7,7 @@
  */
 
 import { initItalicsTab }  from "./italics.js";
-import { initMetadataTab, updateMetadata } from "./metadata.js";
+import { initMetadataTab } from "./metadata.js";
 
 /* ── Tab switching ──────────────────────────────────────── */
 
@@ -31,9 +31,7 @@ tabBtns.forEach((btn) => {
 /* ── Module init ────────────────────────────────────────── */
 
 initMetadataTab();
-
-// Pass a shared callback so Metadata always reflects the current input.
-initItalicsTab((text) => updateMetadata(text));
+initItalicsTab();
 
 // Activate the default tab.
 activateTab("italics");

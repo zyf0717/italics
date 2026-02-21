@@ -31,9 +31,8 @@ export function toUnicodeItalic(text) {
 
 /**
  * Initialises the Italics tab UI and wires up events.
- * @param {(text: string) => void} onTextChange  Called whenever the input changes.
  */
-export function initItalicsTab(onTextChange) {
+export function initItalicsTab() {
   const input   = document.getElementById("input");
   const output  = document.getElementById("output");
   const copyBtn = document.getElementById("copyBtn");
@@ -42,7 +41,6 @@ export function initItalicsTab(onTextChange) {
     const converted = toUnicodeItalic(input.value);
     output.value     = converted;
     copyBtn.disabled = converted.trim().length === 0;
-    onTextChange(input.value);
   }
 
   async function copyOutput() {
