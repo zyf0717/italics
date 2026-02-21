@@ -22,22 +22,28 @@
 
     body {
       margin: 0;
-      min-height: 100vh;
+      height: 100vh;
+      height: 100dvh;
       font-family: "Segoe UI", Tahoma, sans-serif;
       color: var(--text);
       background: linear-gradient(180deg, #f9fafb 0%, var(--bg) 100%);
-      display: grid;
-      place-items: center;
-      padding: 1rem;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      padding: 0.75rem;
+      overflow: hidden;
     }
 
     .app {
       width: min(760px, 100%);
+      height: 100%;
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 1rem;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      display: flex;
+      flex-direction: column;
     }
 
     h1 {
@@ -48,6 +54,15 @@
     .row {
       display: grid;
       gap: 0.75rem;
+      grid-template-rows: 1fr 1fr auto;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .row > div {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 0;
     }
 
     label {
@@ -59,8 +74,9 @@
 
     textarea {
       width: 100%;
-      min-height: 120px;
-      resize: vertical;
+      min-height: 0;
+      height: 100%;
+      resize: none;
       border: 1px solid var(--border);
       border-radius: 10px;
       padding: 0.7rem 0.8rem;
@@ -94,12 +110,12 @@
     }
 
     @media (max-width: 600px) {
-      .app {
-        padding: 0.85rem;
+      body {
+        padding: 0.5rem;
       }
 
-      textarea {
-        min-height: 105px;
+      .app {
+        padding: 0.85rem;
       }
 
       button {
