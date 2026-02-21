@@ -69,7 +69,6 @@
     }
 
     #output {
-      font-style: italic;
       background: #fbfdff;
     }
 
@@ -130,8 +129,25 @@
     const output = document.getElementById("output");
     const copyBtn = document.getElementById("copyBtn");
 
+    const italicMap = new Map();
+
+    for (let i = 0; i < 26; i += 1) {
+      italicMap.set(
+        String.fromCharCode(65 + i),
+        String.fromCodePoint(0x1d608 + i)
+      );
+      italicMap.set(
+        String.fromCharCode(97 + i),
+        String.fromCodePoint(0x1d622 + i)
+      );
+    }
+
+    function toUnicodeItalic(text) {
+      return Array.from(text, (char) => italicMap.get(char) ?? char).join("");
+    }
+
     function syncOutput() {
-      output.value = input.value;
+      output.value = toUnicodeItalic(input.value);
       copyBtn.disabled = output.value.trim().length === 0;
     }
 
