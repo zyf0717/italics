@@ -109,7 +109,7 @@ const REDNOTE_BODY_TAGS = [
  * @param {{ showLocation: boolean, showGear: boolean, showTags: boolean, platform: string }} opts
  * @returns {string}
  */
-function buildSummary(data, location, opts = {}) {
+export function buildSummary(data, location, opts = {}) {
   const { showLocation = true, showGear = true, showTags = true, tripod = false, dotSight = false, platform = "instagram" } = opts;
   const { place = "", countryCode = "" } = location;
 
@@ -171,7 +171,7 @@ function buildSummary(data, location, opts = {}) {
  * @param {Record<string, unknown>} data
  * @returns {string}
  */
-function formatExif(data) {
+export function formatExif(data) {
   return Object.entries(data)
     .map(([key, val]) => {
       if (val instanceof Uint8Array || val instanceof ArrayBuffer) return null;
