@@ -77,7 +77,7 @@ async function reverseGeocode(lat, lon) {
  * @param {number|null} t
  * @returns {string|null}
  */
-function formatShutterSpeed(t) {
+export function formatShutterSpeed(t) {
   if (t == null) return null;
   if (t >= 1)    return `${Math.round(t * 10) / 10}s`;
   return `1/${Math.round(1 / t)}s`;
