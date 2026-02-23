@@ -77,7 +77,7 @@ async function reverseGeocode(lat, lon) {
  * @param {number|null} t
  * @returns {string|null}
  */
-function formatShutterSpeed(t) {
+export function formatShutterSpeed(t) {
   if (t == null) return null;
   if (t >= 1)    return `${Math.round(t * 10) / 10}s`;
   return `1/${Math.round(1 / t)}s`;
@@ -109,7 +109,7 @@ const REDNOTE_BODY_TAGS = [
  * @param {{ showLocation: boolean, showGear: boolean, showTags: boolean, platform: string }} opts
  * @returns {string}
  */
-function buildSummary(data, location, opts = {}) {
+export function buildSummary(data, location, opts = {}) {
   const { showLocation = true, showGear = true, showTags = true, tripod = false, dotSight = false, platform = "instagram" } = opts;
   const { place = "", countryCode = "" } = location;
 
@@ -171,7 +171,7 @@ function buildSummary(data, location, opts = {}) {
  * @param {Record<string, unknown>} data
  * @returns {string}
  */
-function formatExif(data) {
+export function formatExif(data) {
   return Object.entries(data)
     .map(([key, val]) => {
       if (val instanceof Uint8Array || val instanceof ArrayBuffer) return null;
