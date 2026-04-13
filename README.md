@@ -23,7 +23,7 @@ Current formatting behavior:
 - **Instagram** — outputs species as `Common Name (italic scientific name)`, inserts blank lines between sections, omits the `⚙️` settings line, and includes country, regional, and global Instagram tags when available.
 - **RedNote** — outputs species on three lines (`Chinese name`, `English name`, `italic scientific name`), keeps the `⚙️` settings line, and places the hashtag block after a blank line.
 
-GPS coordinates are reverse-geocoded to a place name via [Nominatim](https://nominatim.openstreetmap.org/). Instagram Nikon tags are looked up dynamically from Nikon's official social-media accounts page based on the resolved country code, with conservative fallbacks when no local account exists or the lookup fails; the generated Instagram tags also always include `@nikonschoolsg`. Camera bodies and lenses are matched against known presets and formatted for each platform. For supported lenses, the metadata tool also infers `TC-1.4x` or `TC-2.0x` on the `📷` line when EXIF focal length clearly indicates a teleconverter. Unrecognised gear falls back to the raw EXIF value. All processing is done locally in the browser; no data is uploaded.
+GPS coordinates are reverse-geocoded to a place name via [Nominatim](https://nominatim.openstreetmap.org/). Instagram Nikon tags are looked up from a same-origin JSON index generated from Nikon's official social-media accounts page at build/deploy time, which avoids browser CORS failures while still tracking Nikon's live data; conservative fallbacks are used when no local account exists or the lookup fails, and the generated Instagram tags always include `@nikonschoolsg`. Region classification is baked into the app with a broad ISO-style country/territory map so regional tag decisions stay deterministic instead of depending on another runtime dataset. Camera bodies and lenses are matched against known presets and formatted for each platform. For supported lenses, the metadata tool also infers `TC-1.4x` or `TC-2.0x` on the `📷` line when EXIF focal length clearly indicates a teleconverter. Unrecognised gear falls back to the raw EXIF value. All processing is done locally in the browser; no data is uploaded.
 
 #### Supported camera bodies
 
@@ -63,6 +63,12 @@ GPS coordinates are reverse-geocoded to a place name via [Nominatim](https://nom
 ```bash
 npm install
 npm run dev
+```
+
+To refresh the checked-in Nikon Instagram index from Nikon's live social-media page:
+
+```bash
+npm run sync:nikon-social
 ```
 
 ## Build

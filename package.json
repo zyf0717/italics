@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "sync:nikon-social": "node scripts/update-nikon-instagram-index.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest"

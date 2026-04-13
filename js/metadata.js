@@ -8,6 +8,14 @@
 import * as exifr from "exifr";
 import { toUnicodeItalic } from "./italics.js";
 import { copyText } from "./ui.js";
+import {
+  NIKON_INSTAGRAM_INDEX_URL,
+  parseNikonInstagramIndex,
+  normalizeLookupKey,
+  normalizeNikonInstagramIndexData,
+} from "./nikon-social.js";
+
+export { parseNikonInstagramIndex } from "./nikon-social.js";
 
 /**
  * Known camera bodies — matched against the EXIF Make+Model string.
@@ -122,28 +130,48 @@ export function formatShutterSpeed(t) {
   return `1/${Math.round(1 / t)}s`;
 }
 
-/**
- * ISO 3166-1 alpha-2 country codes considered "Asia" for tag purposes.
- */
-const ASIA_COUNTRY_CODES = new Set([
-  "sg","my","th","id","ph","vn","kh","la","mm","bn",
-  "cn","jp","kr","tw","hk","mo","in","lk","np","bd","bt","mv",
-  "pk","af","mn","kp","tl","tr","ge","am","az",
-  "kz","uz","tm","kg","tj",
-]);
+const REGION_COUNTRY_CODES = Object.freeze({
+  Africa: [
+    "ao","bf","bi","bj","bw","cd","cf","cg","ci","cm","cv","dj","dz","eg","eh","er","et","ga","gh","gm",
+    "gn","gq","gw","ke","km","lr","ls","ly","ma","mg","ml","mr","mu","mw","mz","na","ne","ng","re","rw",
+    "sc","sd","sh","sl","sn","so","ss","st","sz","td","tg","tn","tz","ug","yt","za","zm","zw",
+  ],
+  Americas: [
+    "ag","ai","ar","aw","bb","bl","bm","bo","bq","br","bs","bz","ca","cl","co","cr","cu","cw","dm","do",
+    "ec","fk","gd","gf","gl","gp","gs","gt","gy","hn","ht","jm","kn","ky","lc","mf","mq","ms","mx","ni","pa",
+    "pe","pm","pr","py","sr","sv","sx","tc","tt","us","uy","vc","ve","vg","vi",
+  ],
+  Asia: [
+    "af","am","az","bd","bn","bt","cc","cn","cx","ge","hk","id","in","io","jp","kg","kh","kp","kr","kz","la",
+    "lk","mm","mn","mo","mv","my","np","ph","pk","sg","th","tj","tl","tm","tw","uz","vn",
+  ],
+  Europe: [
+    "ad","al","at","ax","ba","be","bg","by","ch","cz","de","dk","ee","es","fi","fo","fr","gb","gg","gi",
+    "gr","hr","hu","ie","im","is","it","je","li","lt","lu","lv","mc","md","me","mk","mt","nl","no","pl",
+    "pt","ro","rs","ru","se","si","sj","sk","sm","ua","va","xk",
+  ],
+  "Middle East": [
+    "ae","bh","cy","il","iq","ir","jo","kw","lb","om","ps","qa","sa","sy","tr","ye",
+  ],
+  Oceania: [
+    "as","au","ck","fj","fm","gu","ki","mh","mp","nc","nf","nr","nu","nz","pf","pg","pn","pw","sb","tk","um",
+    "to","tv","vu","wf","ws",
+  ],
+  Antarctica: ["aq","bv","hm","tf"],
+});
 
-const EUROPE_COUNTRY_CODES = new Set([
-  "al","ad","at","ba","be","bg","by","ch","cy","cz","de","dk","ee","es","fi","fr","gb","gr",
-  "hr","hu","ie","is","it","li","lt","lu","lv","mc","md","me","mk","mt","nl","no","pl","pt",
-  "ro","rs","ru","se","si","sk","sm","ua","va","xk",
-]);
+const REGION_BY_COUNTRY_CODE = Object.freeze(
+  Object.fromEntries(
+    Object.entries(REGION_COUNTRY_CODES)
+      .flatMap(([region, countryCodes]) => countryCodes.map((countryCode) => [countryCode, region]))
+  )
+);
 
-const MIDDLE_EAST_COUNTRY_CODES = new Set([
-  "ae","bh","eg","il","iq","ir","jo","kw","lb","om","ps","qa","sa","sy","tr","ye",
-]);
+const NIKON_REGION_OVERRIDES = Object.freeze({
+  kz: "Europe",
+});
 
 const INSTAGRAM_TAGS_BASE = "@natgeo @natgeoanimals @natgeoyourshot @bbcearth";
-const NIKON_SOCIALMEDIA_URL = "https://www.nikon.com/socialmedia/";
 const COUNTRY_NAME_ALIASES = {
   ba: ["Bosnia and Herzegovina", "Bosnia & Herzegovina"],
   cn: ["Chinese Mainland", "China", "Mainland China"],
@@ -160,6 +188,7 @@ const COUNTRY_NAME_ALIASES = {
   za: ["Republic of South Africa", "South Africa"],
 };
 const NIKON_INSTAGRAM_FALLBACKS = {
+  id: "@nikonindonesia",
   sg: "@nikonsg",
   jp: "@nikonjp",
   us: "@nikonusa",
@@ -191,42 +220,15 @@ export function normalizeScientificName(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
 }
 
-function decodeHtmlEntities(value) {
-  return String(value || "")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&quot;/gi, "\"")
-    .replace(/&#39;|&apos;/gi, "'")
-    .replace(/&ndash;/gi, "-")
-    .replace(/&mdash;/gi, "-")
-    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCharCode(parseInt(code, 16)));
-}
-
-function normalizeHeadingText(value) {
-  return decodeHtmlEntities(String(value || "").replace(/<[^>]+>/g, " "))
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function normalizeLookupKey(value) {
-  return normalizeHeadingText(value)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
-
-function extractInstagramHandle(url) {
-  const match = String(url || "").match(/instagram\.com\/([^/?#]+)/i);
-  return match ? `@${match[1].toLowerCase()}` : "";
+function getCountryRegion(countryCode) {
+  const normalizedCountryCode = String(countryCode || "").toLowerCase();
+  return NIKON_REGION_OVERRIDES[normalizedCountryCode]
+    ?? REGION_BY_COUNTRY_CODE[normalizedCountryCode]
+    ?? "";
 }
 
 function getFallbackRegionName(countryCode) {
-  if (countryCode === "kz") return "Europe";
-  if (ASIA_COUNTRY_CODES.has(countryCode)) return "Asia";
-  if (EUROPE_COUNTRY_CODES.has(countryCode)) return "Europe";
-  if (MIDDLE_EAST_COUNTRY_CODES.has(countryCode)) return "Middle East";
-  return "";
+  return getCountryRegion(countryCode);
 }
 
 function getCountryLookupCandidates(countryCode) {
@@ -244,40 +246,25 @@ function getCountryLookupCandidates(countryCode) {
   ].filter(Boolean))];
 }
 
-export function parseNikonInstagramIndex(html) {
-  const index = new Map();
-  let currentSection = "";
-
-  const tokenRegex = /<(h2|h3)\b[^>]*>([\s\S]*?)<\/\1>|<a\b[^>]*href=(["'])([^"']*instagram\.com\/[^"']*)\3[^>]*>[\s\S]*?<\/a>/gi;
-  for (const match of html.matchAll(tokenRegex)) {
-    if (match[1]) {
-      currentSection = normalizeHeadingText(match[2]);
-      continue;
-    }
-
-    const handle = extractInstagramHandle(match[4]);
-    const key = normalizeLookupKey(currentSection);
-    if (key && handle && !index.has(key)) {
-      index.set(key, handle);
-    }
-  }
-
-  return index;
-}
-
 async function fetchNikonInstagramIndex(fetchImpl = fetch) {
-  if (fetchImpl !== fetch) {
-    const res = await fetchImpl(NIKON_SOCIALMEDIA_URL, { headers: { Accept: "text/html" } });
+  const loadIndex = async () => {
+    const res = await fetchImpl(NIKON_INSTAGRAM_INDEX_URL, { headers: { Accept: "application/json" } });
     if (!res.ok) throw new Error(`Nikon social lookup failed with ${res.status}`);
-    return parseNikonInstagramIndex(await res.text());
+    if (typeof res.json === "function") {
+      return normalizeNikonInstagramIndexData(await res.json());
+    }
+    if (typeof res.text === "function") {
+      return parseNikonInstagramIndex(await res.text());
+    }
+    throw new Error("Nikon social lookup returned an unreadable response");
+  };
+
+  if (fetchImpl !== fetch) {
+    return loadIndex();
   }
 
   if (!nikonInstagramIndexPromise) {
-    nikonInstagramIndexPromise = (async () => {
-      const res = await fetchImpl(NIKON_SOCIALMEDIA_URL, { headers: { Accept: "text/html" } });
-      if (!res.ok) throw new Error(`Nikon social lookup failed with ${res.status}`);
-      return parseNikonInstagramIndex(await res.text());
-    })().catch((err) => {
+    nikonInstagramIndexPromise = loadIndex().catch((err) => {
       nikonInstagramIndexPromise = null;
       throw err;
     });
@@ -299,7 +286,7 @@ function getRegionalNikonInstagramTag(countryCode) {
 }
 
 function isNatGeoAsiaCountry(countryCode) {
-  return ASIA_COUNTRY_CODES.has(countryCode) && getFallbackRegionName(countryCode) === "Asia";
+  return getCountryRegion(countryCode) === "Asia";
 }
 
 function buildInstagramTags(countryCode, instagramNikonTag) {

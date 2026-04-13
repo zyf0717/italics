@@ -26,6 +26,8 @@ jobs:
           cache: npm
 
       - run: npm ci
+      - name: Refresh Nikon social index
+        run: npm run sync:nikon-social
       - name: Run tests
         run: npm test -- --run
       - run: npm run build

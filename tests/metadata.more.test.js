@@ -217,14 +217,29 @@ describe('lookupOfficialNikonInstagramTag', () => {
   it('returns a country-specific official handle when present', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      text: async () => `
-        <h2>Asia</h2>
-        <h3>Singapore</h3>
-        <a href="https://www.instagram.com/nikonsg/">nikonsg</a>
-      `,
+      json: async () => ({
+        index: {
+          singapore: '@nikonsg',
+        },
+      }),
     });
 
     await expect(lookupOfficialNikonInstagramTag('sg', fetchMock)).resolves.toBe('@nikonsg');
+  });
+
+  it('reads the generated Nikon JSON index format', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        fetchedAt: '2026-04-13T08:45:49.878Z',
+        sourceUrl: 'https://www.nikon.com/socialmedia/',
+        index: {
+          indonesia: '@nikonindonesia',
+        },
+      }),
+    });
+
+    await expect(lookupOfficialNikonInstagramTag('id', fetchMock)).resolves.toBe('@nikonindonesia');
   });
 
   it('falls back to the official regional handle when no country-specific handle exists', async () => {
@@ -239,6 +254,20 @@ describe('lookupOfficialNikonInstagramTag', () => {
     });
 
     await expect(lookupOfficialNikonInstagramTag('be', fetchMock)).resolves.toBe('@nikoneurope');
+  });
+
+  it('uses broader baked-in region coverage for Oceania when only a regional heading is available', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => `
+        <h2>Oceania</h2>
+        <h3>Oceania</h3>
+        <a href="https://www.instagram.com/nikonoceania/">nikonoceania</a>
+        <h3>Australia</h3>
+      `,
+    });
+
+    await expect(lookupOfficialNikonInstagramTag('au', fetchMock)).resolves.toBe('@nikonoceania');
   });
 
   it('matches Hong Kong despite the Intl display-name mismatch', async () => {
@@ -299,5 +328,10 @@ describe('lookupOfficialNikonInstagramTag', () => {
   it('uses the conservative fallback map when the official lookup fails', async () => {
     const fetchMock = vi.fn().mockRejectedValue(new Error('network down'));
     await expect(lookupOfficialNikonInstagramTag('sg', fetchMock)).resolves.toBe('@nikonsg');
+  });
+
+  it('falls back to Indonesia’s local Nikon handle when the live lookup is unavailable', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error('cors blocked'));
+    await expect(lookupOfficialNikonInstagramTag('id', fetchMock)).resolves.toBe('@nikonindonesia');
   });
 });
