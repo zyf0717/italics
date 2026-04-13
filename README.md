@@ -9,15 +9,21 @@ A lightweight, client-side web app with two utilities.
 ## Features
 
 ### Italics tab
-Converts plain text to Unicode sans-serif italic characters (e.g. `hello` → `𝘩𝘦𝘭𝘭𝘰`). Non-alphabetic characters pass through unchanged. One click copies the result to the clipboard.
+Converts plain text to Unicode sans-serif italic characters (e.g. `hello` → `𝘩𝘦𝘭𝘭𝘰`). Non-alphabetic characters pass through unchanged. You can paste from the clipboard into the input and copy the converted output with one click.
 
 ### Metadata tab
 Reads EXIF data from a JPEG image (drag-and-drop or file picker) and produces two outputs:
 
 - **Settings** — a formatted summary of shooting parameters (location, camera/lens gear, and keyword tags), with toggle controls for each section and platform presets for Instagram and RedNote.
+- **Scientific-name lookup** — if the Italics tab input contains a scientific name, the Metadata tab searches Wikidata and inserts the most likely common name into the generated settings, using English for Instagram and Chinese for RedNote. The scientific name is appended in Unicode italics inline for Instagram and on its own line for RedNote.
 - **EXIF** — the raw EXIF fields as plain text.
 
-GPS coordinates are reverse-geocoded to a place name via [Nominatim](https://nominatim.openstreetmap.org/). Camera bodies and lenses are matched against known presets and formatted for each platform. Unrecognised gear falls back to the raw EXIF value. All processing is done locally in the browser; no data is uploaded.
+Current formatting behavior:
+
+- **Instagram** — outputs species as `Common Name (italic scientific name)`, inserts blank lines between sections, omits the `⚙️` settings line, and includes country, regional, and global Instagram tags when available.
+- **RedNote** — outputs species on three lines (`Chinese name`, `English name`, `italic scientific name`), keeps the `⚙️` settings line, and places the hashtag block after a blank line.
+
+GPS coordinates are reverse-geocoded to a place name via [Nominatim](https://nominatim.openstreetmap.org/). Instagram Nikon tags are looked up dynamically from Nikon's official social-media accounts page based on the resolved country code, with conservative fallbacks when no local account exists or the lookup fails; the generated Instagram tags also always include `@nikonschoolsg`. Camera bodies and lenses are matched against known presets and formatted for each platform. For supported lenses, the metadata tool also infers `TC-1.4x` or `TC-2.0x` on the `📷` line when EXIF focal length clearly indicates a teleconverter. Unrecognised gear falls back to the raw EXIF value. All processing is done locally in the browser; no data is uploaded.
 
 #### Supported camera bodies
 

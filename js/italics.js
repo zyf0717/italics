@@ -3,8 +3,10 @@
  *
  * Exports:
  *   toUnicodeItalic(text: string) → string
- *   initItalicsTab(onTextChange: (text: string) => void) → void
+ *   initItalicsTab() → void
  */
+
+import { copyText, flashButtonLabel } from "./ui.js";
 
 const italicMap = new Map();
 
@@ -36,6 +38,7 @@ export function initItalicsTab() {
   const input   = document.getElementById("input");
   const output  = document.getElementById("output");
   const copyBtn = document.getElementById("copyBtn");
+  const pasteBtn = document.getElementById("pasteBtn");
 
   function syncOutput() {
     const converted = toUnicodeItalic(input.value);
@@ -45,19 +48,22 @@ export function initItalicsTab() {
 
   async function copyOutput() {
     if (!output.value) return;
+    await copyText(output.value, output, copyBtn);
+  }
 
+  async function pasteInput() {
     try {
-      await navigator.clipboard.writeText(output.value);
-      const prev = copyBtn.textContent;
-      copyBtn.textContent = "Copied";
-      setTimeout(() => { copyBtn.textContent = prev; }, 1000);
+      const text = await navigator.clipboard.readText();
+      input.value = text;
+      syncOutput();
+      flashButtonLabel(pasteBtn, "Pasted");
     } catch {
-      output.select();
-      document.execCommand("copy");
+      input.focus();
     }
   }
 
   input.addEventListener("input", syncOutput);
   copyBtn.addEventListener("click", copyOutput);
+  pasteBtn.addEventListener("click", pasteInput);
   syncOutput();
 }

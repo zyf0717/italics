@@ -13,6 +13,7 @@ import { initMetadataTab } from "./metadata.js";
 
 const tabBtns   = document.querySelectorAll(".tab-btn");
 const tabPanels = document.querySelectorAll(".tab-panel");
+const metadataTab = initMetadataTab({ scientificNameInput: document.getElementById("input") });
 
 function activateTab(tabId) {
   tabBtns.forEach((btn) => {
@@ -22,6 +23,7 @@ function activateTab(tabId) {
   tabPanels.forEach((panel) => {
     panel.classList.toggle("active", panel.id === `tab-${tabId}`);
   });
+  if (tabId === "metadata") void metadataTab.syncScientificName();
 }
 
 tabBtns.forEach((btn) => {
@@ -30,7 +32,6 @@ tabBtns.forEach((btn) => {
 
 /* ── Module init ────────────────────────────────────────── */
 
-initMetadataTab();
 initItalicsTab();
 
 // Activate the default tab.

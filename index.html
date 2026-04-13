@@ -18,13 +18,14 @@
     <!-- Tab 1 · Italics -->
     <section id="tab-italics" class="tab-panel" role="tabpanel" aria-labelledby="tab-italics">
       <div class="italics-layout">
+        <button id="pasteBtn" class="action-btn" type="button">Paste input</button>
         <div>
           <textarea id="input" placeholder="Type here…"></textarea>
         </div>
         <div>
           <textarea id="output" readonly placeholder="Italicized output will appear here…"></textarea>
         </div>
-        <button id="copyBtn" type="button">Copy output</button>
+        <button id="copyBtn" class="action-btn" type="button">Copy output</button>
       </div>
     </section>
 
@@ -55,13 +56,13 @@
           <label class="tog-label"><input type="radio" name="tog-platform" id="tog-rednote"> RedNote</label>
         </div>
 
-        <button id="meta-summaryCopyBtn" type="button" disabled>Copy settings</button>
+        <button id="meta-summaryCopyBtn" class="action-btn" type="button" disabled>Copy settings</button>
 
         <div class="meta-output-wrap">
           <textarea id="meta-output" readonly placeholder="EXIF data will appear here…"></textarea>
         </div>
 
-        <button id="meta-copyBtn" type="button" disabled>Copy EXIF</button>
+        <button id="meta-copyBtn" class="action-btn" type="button" disabled>Copy EXIF</button>
 
       </div>
     </section>
