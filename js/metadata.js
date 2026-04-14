@@ -220,6 +220,17 @@ export function normalizeScientificName(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
 }
 
+function buildSpeciesHashtag(subject, platform) {
+  if (platform === "rednote") {
+    const chineseCommonName = normalizeScientificName(subject?.rednoteCommonName).replace(/\s+/g, "");
+    return chineseCommonName ? `#${chineseCommonName}` : "";
+  }
+
+  const englishCommonName = normalizeScientificName(subject?.instagramCommonName).toLowerCase();
+  const hashtagBody = englishCommonName.replace(/[^a-z]/g, "");
+  return hashtagBody ? `#${hashtagBody}` : "";
+}
+
 function getCountryRegion(countryCode) {
   const normalizedCountryCode = String(countryCode || "").toLowerCase();
   return NIKON_REGION_OVERRIDES[normalizedCountryCode]
@@ -300,9 +311,10 @@ function buildInstagramTags(countryCode, instagramNikonTag) {
   ].filter(Boolean))].join(" ");
 }
 
-function buildRednoteTags(body) {
+function buildRednoteTags(body, subject) {
   const bodyTag = REDNOTE_BODY_TAGS.find((preset) => preset.match(body))?.tag ?? "";
-  return ["#观鸟", "#鸟类摄影", bodyTag].filter(Boolean).join(" ");
+  const speciesTag = buildSpeciesHashtag(subject, "rednote");
+  return ["#观鸟", "#鸟类摄影", speciesTag, bodyTag].filter(Boolean).join(" ");
 }
 
 export async function lookupOfficialNikonInstagramTag(countryCode, fetchImpl = fetch) {
@@ -501,13 +513,27 @@ function getCameraSummary(data, platform, dotSight) {
   return `${resolveGear(body, lens, platform, focalLength)}${dotSight ? " + DF-M1" : ""}`;
 }
 
-function getRednoteSettingsLine(data, tripod) {
+function getRednoteSettingsValue(data, tripod) {
   const focal    = data.FocalLength != null ? `${Math.round(data.FocalLength)}mm` : null;
   const aperture = data.FNumber     != null ? `f/${data.FNumber}` : null;
   const shutter  = formatShutterSpeed(data.ExposureTime);
   const iso      = data.ISO         != null ? `ISO ${data.ISO}` : null;
   const handheld = tripod ? "三角架" : "手持";
-  return `\u2699\uFE0F: ${[focal, aperture, shutter, iso, handheld].filter(Boolean).join(" | ")}`;
+  return [focal, aperture, shutter, iso, handheld].filter(Boolean).join(" | ");
+}
+
+function getRednoteSettingsLine(data, tripod) {
+  return `\u2699\uFE0F: ${getRednoteSettingsValue(data, tripod)}`;
+}
+
+function getRednoteSettingsBlock(batchData, primaryData, tripod) {
+  const items = Array.isArray(batchData) && batchData.length ? batchData : [primaryData].filter(Boolean);
+  if (items.length <= 1) return getRednoteSettingsLine(items[0], tripod);
+
+  const total = items.length;
+  return items
+    .map((item, index) => `[${index + 1}/${total}]: ${getRednoteSettingsValue(item, tripod)}`)
+    .join("\n");
 }
 
 async function resolveSummaryLocation(data) {
@@ -528,15 +554,16 @@ async function resolveSummaryLocation(data) {
  * Builds the settings summary (synchronous — location must be pre-resolved).
  * @param {Record<string, unknown>} data
  * @param {{ place: string, countryCode: string, instagramNikonTag?: string }} location  Pre-fetched location object.
- * @param {{ showLocation: boolean, showGear: boolean, showTags: boolean, platform: string, subject?: { scientificName?: string, instagramCommonName?: string, rednoteCommonName?: string } | null }} opts
+ * @param {{ showLocation: boolean, showGear: boolean, showTags: boolean, platform: string, batchData?: Record<string, unknown>[], subject?: { scientificName?: string, instagramCommonName?: string, rednoteCommonName?: string } | null }} opts
  * @returns {string}
  */
 export function buildSummary(data, location, opts = {}) {
-  const { showLocation = true, showGear = true, showTags = true, tripod = false, dotSight = false, platform = "instagram", subject = null } = opts;
+  const { showLocation = true, showGear = true, showTags = true, tripod = false, dotSight = false, platform = "instagram", batchData = null, subject = null } = opts;
   const { place = "", countryCode = "", instagramNikonTag = "" } = location;
 
   const sections = [];
   const subjectLine = buildSubjectLine(subject, platform);
+  const speciesHashtag = buildSpeciesHashtag(subject, platform);
   if (subjectLine) sections.push(subjectLine);
 
   if (showLocation) sections.push(`\u{1F4CD}: ${place}`);
@@ -547,18 +574,19 @@ export function buildSummary(data, location, opts = {}) {
     sections.push(`\u{1F4F7}: ${getCameraSummary(data, platform, dotSight)}`);
 
     if (platform === "rednote") {
-      sections.push(getRednoteSettingsLine(data, tripod));
+      sections.push(getRednoteSettingsBlock(batchData, data, tripod));
       if (showTags) sections.push("");
-      if (showTags) sections.push(buildRednoteTags(body));
+      if (showTags) sections.push(buildRednoteTags(body, subject));
     }
   }
 
   if (showTags && platform === "instagram") {
+    if (speciesHashtag) sections.push(speciesHashtag);
     sections.push(buildInstagramTags(countryCode, instagramNikonTag));
   }
 
   if (showTags && platform === "rednote" && !showGear) {
-    sections.push(buildRednoteTags(getCameraBody(data.Make, data.Model)));
+    sections.push(buildRednoteTags(getCameraBody(data.Make, data.Model), subject));
   }
 
   return sections.join(platform === "instagram" ? "\n\n" : "\n");
@@ -606,6 +634,7 @@ export function initMetadataTab(deps = {}) {
 
   /** Current EXIF data and pre-fetched location, kept for re-rendering on toggle changes. */
   let lastData     = null;
+  let lastBatchData = [];
   let lastLocation = { place: "", countryCode: "" };
   let lastSubject  = null;
   let lookupSequence = 0;
@@ -624,7 +653,7 @@ export function initMetadataTab(deps = {}) {
 
   function refreshSummary() {
     if (!lastData) return;
-    summaryOut.value     = buildSummary(lastData, lastLocation, { ...getOpts(), subject: lastSubject });
+    summaryOut.value     = buildSummary(lastData, lastLocation, { ...getOpts(), batchData: lastBatchData, subject: lastSubject });
     summaryCopy.disabled = false;
   }
 
@@ -683,13 +712,12 @@ export function initMetadataTab(deps = {}) {
   dropZone.addEventListener("drop", (e) => {
     e.preventDefault();
     dropZone.classList.remove("drag-over");
-    const file = e.dataTransfer.files[0];
-    if (file) processFile(file);
+    if (e.dataTransfer.files.length) processFiles(e.dataTransfer.files);
   });
 
   /* ── File input change ── */
   fileInput.addEventListener("change", () => {
-    if (fileInput.files[0]) processFile(fileInput.files[0]);
+    if (fileInput.files.length) processFiles(fileInput.files);
   });
 
   /* ── Summary copy button ── */
@@ -704,36 +732,46 @@ export function initMetadataTab(deps = {}) {
     await copyText(metaOut.value, metaOut, copyBtn);
   });
 
-  /* ── Process uploaded file ── */
-  async function processFile(file) {
-    if (!file.type.match(/image\/jpe?g/i)) {
+  /* ── Process uploaded file batch ── */
+  async function processFiles(fileList) {
+    const files = Array.from(fileList);
+    if (!files.length) return;
+
+    if (files.some((file) => !(file.type.match(/image\/jpe?g/i) || /\.jpe?g$/i.test(file.name)))) {
       setStatus("Only JPEG files are supported.", true);
       return;
     }
 
-    setStatus("Reading metadata\u2026");
+    setStatus(`Reading metadata from ${files.length} image${files.length !== 1 ? "s" : ""}\u2026`);
     metaOut.value        = "";
     summaryOut.value     = "";
     copyBtn.disabled     = true;
     summaryCopy.disabled = true;
 
     try {
-      const data = await exifr.parse(file, { all: true });
-
-      if (!data || Object.keys(data).length === 0) {
-        setStatus("No EXIF metadata found in this image.");
+      const parsedBatch = await Promise.all(files.map(async (file) => ({
+        file,
+        data: await exifr.parse(file, { all: true }),
+      })));
+      const missingExif = parsedBatch.find(({ data }) => !data || Object.keys(data).length === 0);
+      if (missingExif) {
+        setStatus(`No EXIF metadata found in ${missingExif.file.name}.`);
         return;
       }
 
-      metaOut.value    = formatExif(data);
+      const [{ file: firstFile, data: firstData }] = parsedBatch;
+
+      metaOut.value    = formatExif(firstData);
       copyBtn.disabled = false;
-      const n = Object.keys(data).length;
-      setStatus(`${n} tag${n !== 1 ? "s" : ""} found \u2014 ${file.name}`);
+      const n = Object.keys(firstData).length;
+      const batchSuffix = files.length > 1 ? ` (showing first of ${files.length})` : "";
+      setStatus(`${n} tag${n !== 1 ? "s" : ""} found \u2014 ${firstFile.name}${batchSuffix}`);
 
       // Resolve location once; then render summary (sync from here on)
       summaryOut.value = "Building caption\u2026";
-      lastData     = data;
-      lastLocation = await resolveSummaryLocation(data);
+      lastData      = firstData;
+      lastBatchData = parsedBatch.map(({ data }) => data);
+      lastLocation  = await resolveSummaryLocation(firstData);
       refreshSummary();
       void syncScientificName();
     } catch (err) {

@@ -14,14 +14,14 @@ Converts plain text to Unicode sans-serif italic characters (e.g. `hello` → `�
 ### Metadata tab
 Reads EXIF data from a JPEG image (drag-and-drop or file picker) and produces two outputs:
 
-- **Settings** — a formatted summary of shooting parameters (location, camera/lens gear, and keyword tags), with toggle controls for each section and platform presets for Instagram and RedNote.
+- **Settings** — a formatted summary of shooting parameters (location, camera/lens gear, and keyword tags), with toggle controls for each section and platform presets for Instagram and RedNote. The metadata tab accepts batch JPG uploads; the first image drives caption context, and RedNote can expand the settings block to include per-image exposure lines in upload order.
 - **Scientific-name lookup** — if the Italics tab input contains a scientific name, the Metadata tab searches Wikidata and inserts the most likely common name into the generated settings, using English for Instagram and Chinese for RedNote. The scientific name is appended in Unicode italics inline for Instagram and on its own line for RedNote.
 - **EXIF** — the raw EXIF fields as plain text.
 
 Current formatting behavior:
 
-- **Instagram** — outputs species as `Common Name (italic scientific name)`, inserts blank lines between sections, omits the `⚙️` settings line, and includes country, regional, and global Instagram tags when available.
-- **RedNote** — outputs species on three lines (`Chinese name`, `English name`, `italic scientific name`), keeps the `⚙️` settings line, and places the hashtag block after a blank line.
+- **Instagram** — outputs species as `Common Name (italic scientific name)`, inserts blank lines between sections, omits the `⚙️` settings line, uses only the first uploaded image for caption generation, adds a normalized English common-name hashtag before the `@` handle block when available, and includes country, regional, and global Instagram tags when available.
+- **RedNote** — outputs species on three lines (`Chinese name`, `English name`, `italic scientific name`), uses the first uploaded image for location/date/gear/tags, and when multiple images are uploaded replaces the single `⚙️` line with ordered per-image settings lines such as `[1/3]: 600mm | f/6.3 | 1/3200s | ISO 1250 | 手持`; it also adds the Chinese common-name hashtag to the hashtag block after a blank line when available.
 
 GPS coordinates are reverse-geocoded to a place name via [Nominatim](https://nominatim.openstreetmap.org/). Instagram Nikon tags are looked up from a same-origin JSON index generated from Nikon's official social-media accounts page at build/deploy time, which avoids browser CORS failures while still tracking Nikon's live data; conservative fallbacks are used when no local account exists or the lookup fails, and the generated Instagram tags always include `@nikonschoolsg`. Region classification is baked into the app with a broad ISO-style country/territory map so regional tag decisions stay deterministic instead of depending on another runtime dataset. Camera bodies and lenses are matched against known presets and formatted for each platform. For supported lenses, the metadata tool also infers `TC-1.4x` or `TC-2.0x` on the `📷` line when EXIF focal length clearly indicates a teleconverter. Unrecognised gear falls back to the raw EXIF value. All processing is done locally in the browser; no data is uploaded.
 

@@ -48,7 +48,7 @@ describe('buildSummary', () => {
     expect(s).toContain('White-throated Kingfisher (𝘏𝘢𝘭𝘤𝘺𝘰𝘯 𝘴𝘮𝘺𝘳𝘯𝘦𝘯𝘴𝘪𝘴)');
     expect(s).toContain('White-throated Kingfisher (𝘏𝘢𝘭𝘤𝘺𝘰𝘯 𝘴𝘮𝘺𝘳𝘯𝘦𝘯𝘴𝘪𝘴)\n\n📍');
     expect(s).not.toContain('⚙️:');
-    expect(s).toContain('📷: Nikon Z8 + 800mm f/6.3 PF\n\n@nikonsg @nikonasia @nikonschoolsg @nparksbuzz @natgeoasia @natgeo @natgeoanimals @natgeoyourshot @bbcearth');
+    expect(s).toContain('📷: Nikon Z8 + 800mm f/6.3 PF\n\n#whitethroatedkingfisher\n\n@nikonsg @nikonasia @nikonschoolsg @nparksbuzz @natgeoasia @natgeo @natgeoanimals @natgeoyourshot @bbcearth');
   });
 
   it('formats date differently for rednote', () => {
@@ -57,13 +57,44 @@ describe('buildSummary', () => {
     const s = buildSummary(baseData, location, { platform: 'rednote', subject });
     expect(s).toContain('📆');
     expect(s).toContain('白胸翡翠\nWhite-throated Kingfisher\n𝘏𝘢𝘭𝘤𝘺𝘰𝘯 𝘴𝘮𝘺𝘳𝘯𝘦𝘯𝘴𝘪𝘴');
-    expect(s).toContain('⚙️: 800mm | f/6.3 | 1/4000s | ISO 100 | 手持\n\n#观鸟');
+    expect(s).toContain('⚙️: 800mm | f/6.3 | 1/4000s | ISO 100 | 手持\n\n#观鸟 #鸟类摄影 #白胸翡翠');
+  });
+
+  it('formats rednote batch settings from all uploaded images while keeping primary gear from the first', () => {
+    const location = { place: '', countryCode: '' };
+    const subject = { scientificName: 'Halcyon smyrnensis', instagramCommonName: 'White-throated Kingfisher', rednoteCommonName: '白胸翡翠' };
+    const batchData = [
+      {
+        ...baseData,
+        FocalLength: 600,
+        ExposureTime: 1 / 3200,
+        ISO: 1250,
+      },
+      {
+        ...baseData,
+        FocalLength: 570,
+        ExposureTime: 1 / 2000,
+        ISO: 800,
+      },
+      {
+        ...baseData,
+        FocalLength: 800,
+        ExposureTime: 1 / 4000,
+        ISO: 1000,
+      },
+    ];
+    const s = buildSummary(batchData[0], location, { platform: 'rednote', subject, batchData });
+
+    expect(s).toContain('📷: 尼康 Z8 + 800mm f/6.3 PF');
+    expect(s).toContain('[1/3]: 600mm | f/6.3 | 1/3200s | ISO 1250 | 手持\n[2/3]: 570mm | f/6.3 | 1/2000s | ISO 800 | 手持\n[3/3]: 800mm | f/6.3 | 1/4000s | ISO 1000 | 手持');
+    expect(s).toContain('\n\n#观鸟 #鸟类摄影 #白胸翡翠');
   });
 
   it('still renders rednote tags cleanly when gear output is disabled', () => {
     const location = { place: '', countryCode: '' };
-    const s = buildSummary(baseData, location, { platform: 'rednote', showGear: false, showTags: true });
-    expect(s).toContain('#观鸟 #鸟类摄影');
+    const subject = { scientificName: 'Halcyon smyrnensis', rednoteCommonName: '白胸翡翠' };
+    const s = buildSummary(baseData, location, { platform: 'rednote', showGear: false, showTags: true, subject });
+    expect(s).toContain('#观鸟 #鸟类摄影 #白胸翡翠');
     expect(s).not.toContain('\n\n#观鸟');
   });
 
@@ -122,6 +153,50 @@ describe('buildSummary', () => {
     const s = buildSummary(baseData, location, { platform: 'instagram' });
     expect(s).toContain('@nikonasia');
     expect(s).toContain('@natgeoasia');
+  });
+
+  it('normalizes the instagram common-name hashtag to lowercase ascii letters only', () => {
+    const location = { place: '', countryCode: '' };
+    const subject = { scientificName: 'Bubo bubo × bengalensis', instagramCommonName: 'Eurasian Eagle-Owl' };
+    const s = buildSummary(baseData, location, { platform: 'instagram', subject });
+
+    expect(s).toContain('#eurasianeagleowl');
+  });
+
+  it('uses the rednote chinese common name as the species hashtag', () => {
+    const location = { place: '', countryCode: '' };
+    const subject = { scientificName: 'Bubo bubo × bengalensis', rednoteCommonName: '雕鸮' };
+    const s = buildSummary(baseData, location, { platform: 'rednote', subject });
+
+    expect(s).toContain('#雕鸮');
+  });
+
+  it('omits the instagram species hashtag when no english common name is available', () => {
+    const location = { place: '', countryCode: '' };
+    const subject = { scientificName: 'Halcyon smyrnensis' };
+    const s = buildSummary(baseData, location, { platform: 'instagram', subject });
+
+    expect(s).not.toContain('#halcyonsmyrnensis');
+    expect(s).not.toContain('\n\n#\n\n@');
+  });
+
+  it('ignores later batch images for instagram captions', () => {
+    const location = { place: '', countryCode: '' };
+    const subject = { scientificName: 'Halcyon smyrnensis', instagramCommonName: 'White-throated Kingfisher' };
+    const batchData = [
+      baseData,
+      {
+        ...baseData,
+        FocalLength: 570,
+        ExposureTime: 1 / 2000,
+        ISO: 800,
+      },
+    ];
+    const s = buildSummary(batchData[0], location, { platform: 'instagram', subject, batchData });
+
+    expect(s).toContain('📷: Nikon Z8 + 800mm f/6.3 PF');
+    expect(s).not.toContain('[1/2]:');
+    expect(s).not.toContain('570mm | f/6.3 | 1/2000s | ISO 800 | 手持');
   });
 });
 
