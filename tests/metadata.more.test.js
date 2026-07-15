@@ -51,6 +51,13 @@ describe('buildSummary', () => {
     expect(s).toContain('📷: Nikon Z8 + 800mm f/6.3 PF\n\n#whitethroatedkingfisher\n\n@nikonsg @nikonasia @nikonschoolsg @nparksbuzz @natgeoasia @natgeo @natgeoanimals @natgeoyourshot @bbcearth');
   });
 
+  it('starts Instagram Nikon tags with the Singapore handle in every country', () => {
+    const location = { place: 'Tokyo', countryCode: 'jp', instagramNikonTag: '@nikonjp' };
+    const s = buildSummary(baseData, location, { platform: 'instagram' });
+
+    expect(s).toContain('@nikonsg @nikonjp @nikonasia @nikonschoolsg');
+  });
+
   it('formats date differently for rednote', () => {
     const location = { place: '', countryCode: '' };
     const subject = { scientificName: 'Halcyon smyrnensis', instagramCommonName: 'White-throated Kingfisher', rednoteCommonName: '白胸翡翠' };

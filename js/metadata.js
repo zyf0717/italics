@@ -302,6 +302,7 @@ function isNatGeoAsiaCountry(countryCode) {
 
 function buildInstagramTags(countryCode, instagramNikonTag) {
   return [...new Set([
+    "@nikonsg",
     instagramNikonTag,
     getRegionalNikonInstagramTag(countryCode),
     "@nikonschoolsg",
