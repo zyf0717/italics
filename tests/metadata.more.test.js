@@ -58,6 +58,21 @@ describe('buildSummary', () => {
     expect(s).toContain('@nikonsg @nikonjp @nikonasia @nikonschoolsg');
   });
 
+  it('includes Nikon tags when only the lens identifies Nikon gear', () => {
+    const data = { ...baseData, Make: 'OM Digital Solutions', Model: 'OM-1', LensModel: 'NIKKOR Z 100-400mm f/4.5-5.6 VR S' };
+    const s = buildSummary(data, { place: 'Tokyo', countryCode: 'jp', instagramNikonTag: '@nikonjp' }, { platform: 'instagram' });
+
+    expect(s).toContain('@nikonsg @nikonjp @nikonasia @nikonschoolsg');
+  });
+
+  it('omits all Nikon tags when neither the camera nor lens is Nikon', () => {
+    const data = { ...baseData, Make: 'OM Digital Solutions', Model: 'OM-1', LensModel: 'LEICA DG 100-400mm f/4-6.3 II' };
+    const s = buildSummary(data, { place: 'Tokyo', countryCode: 'jp', instagramNikonTag: '@nikonjp' }, { platform: 'instagram' });
+
+    expect(s).not.toMatch(/@nikon(?:\w|[._-])*/i);
+    expect(s).toContain('@natgeo @natgeoanimals @natgeoyourshot @bbcearth');
+  });
+
   it('formats date differently for rednote', () => {
     const location = { place: '', countryCode: '' };
     const subject = { scientificName: 'Halcyon smyrnensis', instagramCommonName: 'White-throated Kingfisher', rednoteCommonName: '白胸翡翠' };

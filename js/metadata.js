@@ -300,12 +300,22 @@ function isNatGeoAsiaCountry(countryCode) {
   return getCountryRegion(countryCode) === "Asia";
 }
 
-function buildInstagramTags(countryCode, instagramNikonTag) {
+function hasNikonGear(data) {
+  return /\bnikon\b|\bnikkor\b/i.test([
+    cleanExifText(data.Make),
+    cleanExifText(data.Model),
+    cleanExifText(data.LensModel),
+  ].join(" "));
+}
+
+function buildInstagramTags(countryCode, instagramNikonTag, hasNikon) {
   return [...new Set([
-    "@nikonsg",
-    instagramNikonTag,
-    getRegionalNikonInstagramTag(countryCode),
-    "@nikonschoolsg",
+    ...(hasNikon ? [
+      "@nikonsg",
+      instagramNikonTag,
+      getRegionalNikonInstagramTag(countryCode),
+      "@nikonschoolsg",
+    ] : []),
     countryCode === "sg" ? "@nparksbuzz" : "",
     isNatGeoAsiaCountry(countryCode) ? "@natgeoasia" : "",
     ...INSTAGRAM_TAGS_BASE.split(" "),
@@ -583,7 +593,7 @@ export function buildSummary(data, location, opts = {}) {
 
   if (showTags && platform === "instagram") {
     if (speciesHashtag) sections.push(speciesHashtag);
-    sections.push(buildInstagramTags(countryCode, instagramNikonTag));
+    sections.push(buildInstagramTags(countryCode, instagramNikonTag, hasNikonGear(data)));
   }
 
   if (showTags && platform === "rednote" && !showGear) {
