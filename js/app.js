@@ -3,7 +3,7 @@
  *
  * Responsibilities:
  *   • Tab switching
- *   • Wires the Italics and Metadata modules together
+ *   • Wires the Italics and Settings modules together
  */
 
 import { initItalicsTab }  from "./italics.js";
@@ -13,7 +13,7 @@ import { initMetadataTab } from "./metadata.js";
 
 const tabBtns   = document.querySelectorAll(".tab-btn");
 const tabPanels = document.querySelectorAll(".tab-panel");
-const metadataTab = initMetadataTab({ scientificNameInput: document.getElementById("input") });
+const settingsTab = initMetadataTab({ scientificNameInput: document.getElementById("input") });
 
 function activateTab(tabId) {
   tabBtns.forEach((btn) => {
@@ -23,7 +23,7 @@ function activateTab(tabId) {
   tabPanels.forEach((panel) => {
     panel.classList.toggle("active", panel.id === `tab-${tabId}`);
   });
-  if (tabId === "metadata") void metadataTab.syncScientificName();
+  if (tabId === "settings") void settingsTab.syncScientificName();
 }
 
 tabBtns.forEach((btn) => {

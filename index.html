@@ -11,12 +11,13 @@
 
     <!-- Tab bar -->
     <nav class="tabs" role="tablist" aria-label="Tool tabs">
-      <button class="tab-btn" role="tab" data-tab="italics"  aria-selected="true">Italics</button>
-      <button class="tab-btn" role="tab" data-tab="metadata" aria-selected="false">Metadata</button>
+      <button id="tab-italics-btn" class="tab-btn" role="tab" data-tab="italics" aria-controls="tab-italics" aria-selected="true">Italics</button>
+      <button id="tab-settings-btn" class="tab-btn" role="tab" data-tab="settings" aria-controls="tab-settings" aria-selected="false">Settings</button>
+      <button id="tab-metadata-btn" class="tab-btn" role="tab" data-tab="metadata" aria-controls="tab-metadata" aria-selected="false">Metadata</button>
     </nav>
 
     <!-- Tab 1 · Italics -->
-    <section id="tab-italics" class="tab-panel" role="tabpanel" aria-labelledby="tab-italics">
+    <section id="tab-italics" class="tab-panel" role="tabpanel" aria-labelledby="tab-italics-btn">
       <div class="italics-layout">
         <button id="pasteBtn" class="action-btn" type="button">Paste input</button>
         <div>
@@ -29,8 +30,8 @@
       </div>
     </section>
 
-    <!-- Tab 2 · Metadata -->
-    <section id="tab-metadata" class="tab-panel" role="tabpanel" aria-labelledby="tab-metadata">
+    <!-- Tab 2 · Settings -->
+    <section id="tab-settings" class="tab-panel" role="tabpanel" aria-labelledby="tab-settings-btn">
       <div class="meta-layout">
 
         <div id="meta-dropzone" class="meta-dropzone" tabindex="0"
@@ -57,13 +58,17 @@
         </div>
 
         <button id="meta-summaryCopyBtn" class="action-btn" type="button" disabled>Copy settings</button>
+      </div>
+    </section>
 
+    <!-- Tab 3 · Metadata -->
+    <section id="tab-metadata" class="tab-panel" role="tabpanel" aria-labelledby="tab-metadata-btn">
+      <div class="raw-metadata-layout">
         <div class="meta-output-wrap">
           <textarea id="meta-output" readonly placeholder="EXIF data will appear here…"></textarea>
         </div>
 
         <button id="meta-copyBtn" class="action-btn" type="button" disabled>Copy EXIF</button>
-
       </div>
     </section>
 

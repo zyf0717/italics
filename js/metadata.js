@@ -622,7 +622,7 @@ export function formatExif(data) {
 }
 
 /**
- * Initialises the Metadata tab UI and wires up file-upload / drag-drop events.
+ * Initialises the Settings and Metadata tab UI and wires up file-upload / drag-drop events.
  * @param {{ scientificNameInput?: HTMLTextAreaElement | HTMLInputElement | null }} deps
  */
 export function initMetadataTab(deps = {}) {

@@ -11,12 +11,14 @@ A lightweight, client-side web app with two utilities.
 ### Italics tab
 Converts plain text to Unicode sans-serif italic characters (e.g. `hello` → `𝘩𝘦𝘭𝘭𝘰`). Non-alphabetic characters pass through unchanged. You can paste from the clipboard into the input and copy the converted output with one click.
 
-### Metadata tab
-Reads EXIF data from a JPEG image (drag-and-drop or file picker) and produces two outputs:
+### Settings tab
+Reads EXIF data from a JPEG image (drag-and-drop or file picker) and produces a formatted settings summary:
 
-- **Settings** — a formatted summary of shooting parameters (location, camera/lens gear, and keyword tags), with toggle controls for each section and platform presets for Instagram and RedNote. The metadata tab accepts batch JPG uploads; the first image drives caption context, and RedNote can expand the settings block to include per-image exposure lines in upload order.
-- **Scientific-name lookup** — if the Italics tab input contains a scientific name, the Metadata tab searches Wikidata and inserts the most likely common name into the generated settings, using English for Instagram and Chinese for RedNote. The scientific name is appended in Unicode italics inline for Instagram and on its own line for RedNote.
-- **EXIF** — the raw EXIF fields as plain text.
+- **Settings** — a formatted summary of shooting parameters (location, camera/lens gear, and keyword tags), with toggle controls for each section and platform presets for Instagram and RedNote. The Settings tab accepts batch JPG uploads; the first image drives caption context, and RedNote can expand the settings block to include per-image exposure lines in upload order.
+- **Scientific-name lookup** — if the Italics tab input contains a scientific name, the Settings tab searches Wikidata and inserts the most likely common name into the generated settings, using English for Instagram and Chinese for RedNote. The scientific name is appended in Unicode italics inline for Instagram and on its own line for RedNote.
+
+### Metadata tab
+Displays the raw EXIF fields from the uploaded JPEG as plain text.
 
 Current formatting behavior:
 
