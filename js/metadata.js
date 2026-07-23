@@ -503,8 +503,8 @@ export function buildSubjectLine(subject, platform) {
     return [chineseCommonName, englishCommonName, italicScientificName].filter(Boolean).join("\n");
   }
 
-  if (!englishCommonName) return italicScientificName;
-  return `${englishCommonName} (${italicScientificName})`;
+  if (!englishCommonName) return `${italicScientificName}.`;
+  return `${englishCommonName} (${italicScientificName}).`;
 }
 
 function getDateLine(data, platform) {

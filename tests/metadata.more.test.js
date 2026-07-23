@@ -45,8 +45,8 @@ describe('buildSummary', () => {
     expect(s).toContain('@nikonsg');
     expect(s).toContain('@nikonasia');
     expect(s).toContain('@nikonschoolsg');
-    expect(s).toContain('White-throated Kingfisher (𝘏𝘢𝘭𝘤𝘺𝘰𝘯 𝘴𝘮𝘺𝘳𝘯𝘦𝘯𝘴𝘪𝘴)');
-    expect(s).toContain('White-throated Kingfisher (𝘏𝘢𝘭𝘤𝘺𝘰𝘯 𝘴𝘮𝘺𝘳𝘯𝘦𝘯𝘴𝘪𝘴)\n\n📍');
+    expect(s).toContain('White-throated Kingfisher (𝘏𝘢𝘭𝘤𝘺𝘰𝘯 𝘴𝘮𝘺𝘳𝘯𝘦𝘯𝘴𝘪𝘴).');
+    expect(s).toContain('White-throated Kingfisher (𝘏𝘢𝘭𝘤𝘺𝘰𝘯 𝘴𝘮𝘺𝘳𝘯𝘦𝘯𝘴𝘪𝘴).\n\n📍');
     expect(s).not.toContain('⚙️:');
     expect(s).toContain('📷: Nikon Z8 + 800mm f/6.3 PF\n\n#whitethroatedkingfisher\n\n@nikonsg @nikonasia @nikonschoolsg @nparksbuzz @natgeoasia @natgeo @natgeoanimals @natgeoyourshot @bbcearth');
   });
@@ -230,7 +230,7 @@ describe('buildSubjectLine', () => {
   };
 
   it('formats instagram species names inline', () => {
-    expect(buildSubjectLine(subject, 'instagram')).toBe('White-throated Kingfisher (𝘏𝘢𝘭𝘤𝘺𝘰𝘯 𝘴𝘮𝘺𝘳𝘯𝘦𝘯𝘴𝘪𝘴)');
+    expect(buildSubjectLine(subject, 'instagram')).toBe('White-throated Kingfisher (𝘏𝘢𝘭𝘤𝘺𝘰𝘯 𝘴𝘮𝘺𝘳𝘯𝘦𝘯𝘴𝘪𝘴).');
   });
 
   it('formats rednote species names on two lines', () => {
