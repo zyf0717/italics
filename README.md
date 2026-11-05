@@ -20,6 +20,8 @@ Reads EXIF data from a JPEG image (drag-and-drop or file picker) and produces a 
 ### Metadata tab
 Displays the raw EXIF fields from the uploaded JPEG as plain text.
 
+Each JPEG is read in full so large headers, including C2PA provenance data before the EXIF block, cannot hide its metadata.
+
 Current formatting behavior:
 
 - **Instagram** — outputs species as `Common Name (italic scientific name)`, inserts blank lines between sections, omits the `⚙️` settings line, uses only the first uploaded image for caption generation, adds a normalized English common-name hashtag before the `@` handle block when available, and includes country, regional, and global Instagram tags when available.
@@ -66,6 +68,8 @@ GPS coordinates are reverse-geocoded to a place name via [Nominatim](https://nom
 npm install
 npm run dev
 ```
+
+Keep private photo fixtures in `tests/fixtures/local/`, which is ignored by Git. Automated JPEG parsing tests generate their own synthetic fixtures.
 
 To refresh the checked-in Nikon Instagram index from Nikon's live social-media page:
 

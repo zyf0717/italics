@@ -17,6 +17,11 @@ import {
 
 export { parseNikonInstagramIndex } from "./nikon-social.js";
 
+/** Read the whole JPEG so large provenance headers cannot hide its EXIF block. */
+export function readJpegMetadata(file) {
+  return exifr.parse(file, { chunked: false });
+}
+
 /**
  * Known camera bodies — matched against the EXIF Make+Model string.
  * instagram/rednote are the display names for each platform.
@@ -762,7 +767,7 @@ export function initMetadataTab(deps = {}) {
     try {
       const parsedBatch = await Promise.all(files.map(async (file) => ({
         file,
-        data: await exifr.parse(file, { all: true }),
+        data: await readJpegMetadata(file),
       })));
       const missingExif = parsedBatch.find(({ data }) => !data || Object.keys(data).length === 0);
       if (missingExif) {

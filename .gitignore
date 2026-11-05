@@ -2,6 +2,9 @@ node_modules/
 dist/
 .vite/
 
+# Local photo fixtures
+tests/fixtures/local/
+
 # local env files
 .env
 .env*.local
