@@ -233,55 +233,124 @@ describe('buildSubjectLine', () => {
     expect(buildSubjectLine(subject, 'instagram')).toBe('White-throated Kingfisher (𝘏𝘢𝘭𝘤𝘺𝘰𝘯 𝘴𝘮𝘺𝘳𝘯𝘦𝘯𝘴𝘪𝘴).');
   });
 
-  it('formats rednote species names on two lines', () => {
+  it('formats rednote species names on three lines', () => {
     expect(buildSubjectLine(subject, 'rednote')).toBe('白胸翡翠\nWhite-throated Kingfisher\n𝘏𝘢𝘭𝘤𝘺𝘰𝘯 𝘴𝘮𝘺𝘳𝘯𝘦𝘯𝘴𝘪𝘴');
+  });
+
+  it('preserves capitalization in compound group names on both platforms', () => {
+    const hainan = {
+      scientificName: 'Polyplectron katsumatae',
+      instagramCommonName: 'Hainan Peacock-Pheasant',
+      rednoteCommonName: '海南孔雀雉',
+    };
+
+    expect(buildSubjectLine(hainan, 'instagram')).toBe('Hainan Peacock-Pheasant (𝘗𝘰𝘭𝘺𝘱𝘭𝘦𝘤𝘵𝘳𝘰𝘯 𝘬𝘢𝘵𝘴𝘶𝘮𝘢𝘵𝘢𝘦).');
+    expect(buildSubjectLine(hainan, 'rednote')).toBe('海南孔雀雉\nHainan Peacock-Pheasant\n𝘗𝘰𝘭𝘺𝘱𝘭𝘦𝘤𝘵𝘳𝘰𝘯 𝘬𝘢𝘵𝘴𝘶𝘮𝘢𝘵𝘢𝘦');
   });
 });
 
 describe('lookupTaxonCommonNames', () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
+  const scientificName = 'Polyplectron katsumatae';
+  const englishName = 'Hainan Peacock-Pheasant';
+  const chineseName = '海南孔雀雉';
+  const jsonResponse = (data) => ({ ok: true, json: async () => data });
+  const ebirdResponse = (name) => jsonResponse(name ? [{ sciName: scientificName, comName: name }] : []);
+
+  function withWikidata(fetchMock, taxonName = scientificName) {
+    return fetchMock
+      .mockResolvedValueOnce(jsonResponse({ search: [{ id: 'Q1' }, { id: 'Q2' }] }))
+      .mockResolvedValueOnce(jsonResponse({ entities: {
+        Q1: { labels: { en: { value: 'Wrong genus name' } }, claims: {
+          P225: [{ mainsnak: { datavalue: { value: 'Polyplectron' } } }],
+        } },
+        Q2: { labels: { zh: { value: chineseName } }, claims: {
+          P225: [{ mainsnak: { datavalue: { value: taxonName } } }],
+          P1843: [{ mainsnak: { datavalue: { value: { text: 'Hainan peacock-pheasant', language: 'en' } } } }],
+        } },
+      } }));
+  }
+
+  it('skips requests for an empty scientific name', async () => {
+    const fetchMock = vi.fn();
+
+    await expect(lookupTaxonCommonNames(' \n ', fetchMock)).resolves.toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('prefers the exact taxon-name match and extracts localized common names', async () => {
+  it('gets both names directly from eBird without querying Wikidata', async () => {
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          search: [
-            { id: 'Q1', description: 'bird genus' },
-            { id: 'Q2', description: 'bird species' },
-          ],
-        }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          entities: {
-            Q1: {
-              labels: { en: { value: 'Halcyon' } },
-              claims: {
-                P225: [{ mainsnak: { datavalue: { value: 'Halcyon' } } }],
-              },
-            },
-            Q2: {
-              labels: {
-                en: { value: 'Halcyon smyrnensis' },
-                zh: { value: '白胸翡翠' },
-              },
-              claims: {
-                P225: [{ mainsnak: { datavalue: { value: 'Halcyon smyrnensis' } } }],
-                P1843: [{ mainsnak: { datavalue: { value: { text: 'White-throated Kingfisher', language: 'en' } } } }],
-              },
-            },
-          },
-        }),
-      });
+      .mockResolvedValueOnce(ebirdResponse(englishName))
+      .mockResolvedValueOnce(ebirdResponse(chineseName));
 
-    await expect(lookupTaxonCommonNames('Halcyon smyrnensis', fetchMock)).resolves.toEqual({
-      scientificName: 'Halcyon smyrnensis',
-      instagramCommonName: 'White-throated Kingfisher',
-      rednoteCommonName: '白胸翡翠',
+    await expect(lookupTaxonCommonNames(' Polyplectron   katsumatae ', fetchMock)).resolves.toEqual({
+      scientificName,
+      instagramCommonName: englishName,
+      rednoteCommonName: chineseName,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls.map(([url]) => url.searchParams.get('locale'))).toEqual(['en', 'zh_SIM']);
+    for (const [url] of fetchMock.mock.calls) {
+      expect(url.origin).toBe('https://api.ebird.org');
+      expect(url.searchParams.get('species')).toBe(scientificName);
+    }
+  });
+
+  it.each(['no match', 'scientific name mismatch', 'HTTP failure', 'network error'])('uses an exact Wikidata match on eBird %s', async (failure) => {
+    const fetchMock = vi.fn();
+    if (failure === 'network error') {
+      fetchMock.mockRejectedValueOnce(new Error('offline')).mockRejectedValueOnce(new Error('offline'));
+    } else {
+      const response = failure === 'HTTP failure' ? { ok: false } : jsonResponse(
+        failure === 'no match' ? [] : [{ sciName: 'Polyplectron bicalcaratum', comName: 'Wrong species' }],
+      );
+      fetchMock.mockResolvedValueOnce(response).mockResolvedValueOnce(response);
+    }
+    withWikidata(fetchMock);
+
+    await expect(lookupTaxonCommonNames(scientificName, fetchMock)).resolves.toEqual({
+      scientificName,
+      instagramCommonName: 'Hainan peacock-pheasant',
+      rednoteCommonName: chineseName,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it.each(['English missing', 'Chinese missing', 'Chinese is an English placeholder'])('only fills missing names when %s', async (failure) => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(ebirdResponse(failure === 'English missing' ? '' : englishName))
+      .mockResolvedValueOnce(ebirdResponse(failure === 'Chinese missing' ? '' :
+        failure === 'Chinese is an English placeholder' ? englishName : chineseName));
+    withWikidata(fetchMock);
+
+    await expect(lookupTaxonCommonNames(scientificName, fetchMock)).resolves.toEqual({
+      scientificName,
+      instagramCommonName: failure === 'English missing' ? 'Hainan peacock-pheasant' : englishName,
+      rednoteCommonName: chineseName,
+    });
+  });
+
+  it.each([englishName, ''])('retains resolved names when the remaining lookups fail: %s', async (name) => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(ebirdResponse(name))
+      .mockRejectedValue(new Error('offline'));
+
+    await expect(lookupTaxonCommonNames(scientificName, fetchMock)).resolves.toEqual({
+      scientificName,
+      instagramCommonName: name,
+      rednoteCommonName: '',
+    });
+  });
+
+  it('does not use a Wikidata result for a different scientific name', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(ebirdResponse(''))
+      .mockResolvedValueOnce(ebirdResponse(''));
+    withWikidata(fetchMock, 'Polyplectron bicalcaratum');
+
+    await expect(lookupTaxonCommonNames(scientificName, fetchMock)).resolves.toEqual({
+      scientificName,
+      instagramCommonName: '',
+      rednoteCommonName: '',
     });
   });
 });

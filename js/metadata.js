@@ -396,27 +396,6 @@ function getLocalizedCommonName(entity, languageCodes, scientificName) {
   return label;
 }
 
-function scoreEntityMatch(entity, searchResult, scientificName) {
-  const normalizedScientificName = normalizeScientificName(scientificName).toLowerCase();
-  const taxonNames = getStringClaimValues(entity, TAXON_NAME_PROPERTY)
-    .map((value) => normalizeScientificName(value).toLowerCase());
-  const aliases = Object.values(entity?.aliases ?? {})
-    .flat()
-    .map((alias) => normalizeScientificName(alias?.value).toLowerCase())
-    .filter(Boolean);
-  const englishLabel = normalizeScientificName(getLocalizedLabel(entity, ["en"])).toLowerCase();
-  const description = String(entity?.descriptions?.en?.value ?? searchResult?.description ?? "").toLowerCase();
-
-  let score = 0;
-  if (taxonNames.includes(normalizedScientificName)) score += 1000;
-  if (englishLabel === normalizedScientificName) score += 120;
-  if (aliases.includes(normalizedScientificName)) score += 80;
-  if (searchResult?.match?.type === "label") score += 40;
-  if (searchResult?.match?.type === "alias") score += 20;
-  if (/(species|subspecies|genus|family|bird|taxon|organism)/.test(description)) score += 10;
-  return score;
-}
-
 async function fetchWikidataJson(params, fetchImpl) {
   const url = new URL(WIKIDATA_API_URL);
   url.searchParams.set("format", "json");
@@ -424,69 +403,83 @@ async function fetchWikidataJson(params, fetchImpl) {
   for (const [key, value] of Object.entries(params)) {
     url.searchParams.set(key, value);
   }
-  const res = await fetchImpl(url, { headers: { Accept: "application/json" } });
+  const res = await fetchImpl(url, {
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(5000),
+  });
   if (!res.ok) throw new Error(`Lookup failed with ${res.status}`);
   return res.json();
 }
 
-/**
- * Looks up English and Chinese common names for a scientific name via Wikidata.
- * Falls back to the scientific name when no common name is available.
- * @param {string} scientificName
- * @param {(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>} [fetchImpl]
- * @returns {Promise<{ scientificName: string, instagramCommonName: string, rednoteCommonName: string } | null>}
- */
-export async function lookupTaxonCommonNames(scientificName, fetchImpl = fetch) {
-  const normalizedScientificName = normalizeScientificName(scientificName);
-  if (!normalizedScientificName) return null;
+async function lookupEbirdCommonName(scientificName, locale, fetchImpl) {
+  try {
+    const url = new URL("https://api.ebird.org/v2/ref/taxonomy/ebird");
+    url.search = new URLSearchParams({ fmt: "json", locale, species: scientificName });
+    const res = await fetchImpl(url, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return "";
+    const taxa = await res.json();
+    const normalizedName = normalizeScientificName(scientificName).toLowerCase();
+    const name = normalizeScientificName(taxa.find((taxon) =>
+      normalizeScientificName(taxon.sciName).toLowerCase() === normalizedName)?.comName);
+    // eBird can return an English name when a Chinese translation is unavailable.
+    return locale === "zh_SIM" && !/\p{Script=Han}/u.test(name) ? "" : name;
+  } catch {
+    return "";
+  }
+}
 
+async function lookupWikidataTaxon(scientificName, fetchImpl) {
   const searchJson = await fetchWikidataJson({
     action: "wbsearchentities",
     language: "en",
     uselang: "en",
     type: "item",
     limit: "7",
-    search: normalizedScientificName,
+    search: scientificName,
   }, fetchImpl);
 
   const searchResults = searchJson.search ?? [];
   const ids = searchResults.map((result) => result.id).filter(Boolean);
-  if (ids.length === 0) {
-    return {
-      scientificName: normalizedScientificName,
-      instagramCommonName: "",
-      rednoteCommonName: "",
-    };
-  }
+  if (ids.length === 0) return null;
 
   const entityJson = await fetchWikidataJson({
     action: "wbgetentities",
     ids: ids.join("|"),
-    props: "labels|aliases|claims|descriptions",
+    props: "labels|claims",
     languages: [...new Set([...ENGLISH_LANGUAGE_CODES, ...CHINESE_LANGUAGE_CODES])].join("|"),
   }, fetchImpl);
 
-  const rankedMatches = searchResults
-    .map((result) => ({ result, entity: entityJson.entities?.[result.id] }))
-    .filter(({ entity }) => entity)
-    .sort((left, right) => (
-      scoreEntityMatch(right.entity, right.result, normalizedScientificName) -
-      scoreEntityMatch(left.entity, left.result, normalizedScientificName)
-    ));
+  const normalizedName = scientificName.toLowerCase();
+  return ids.map((id) => entityJson.entities?.[id]).find((entity) =>
+    getStringClaimValues(entity, TAXON_NAME_PROPERTY).some((name) =>
+      normalizeScientificName(name).toLowerCase() === normalizedName));
+}
 
-  const bestMatch = rankedMatches[0]?.entity;
-  if (!bestMatch) {
-    return {
-      scientificName: normalizedScientificName,
-      instagramCommonName: "",
-      rednoteCommonName: "",
-    };
-  }
+/** Looks up English and Chinese names in eBird, using Wikidata only to fill missing names. */
+export async function lookupTaxonCommonNames(scientificName, fetchImpl = fetch) {
+  const normalizedScientificName = normalizeScientificName(scientificName);
+  if (!normalizedScientificName) return null;
 
-  return {
+  const [instagramCommonName, rednoteCommonName] = await Promise.all([
+    lookupEbirdCommonName(normalizedScientificName, "en", fetchImpl),
+    lookupEbirdCommonName(normalizedScientificName, "zh_SIM", fetchImpl),
+  ]);
+  const subject = {
     scientificName: normalizedScientificName,
-    instagramCommonName: getLocalizedCommonName(bestMatch, ENGLISH_LANGUAGE_CODES, normalizedScientificName),
-    rednoteCommonName: getLocalizedCommonName(bestMatch, CHINESE_LANGUAGE_CODES, normalizedScientificName),
+    instagramCommonName,
+    rednoteCommonName,
+  };
+  if (instagramCommonName && rednoteCommonName) return subject;
+
+  const entity = await lookupWikidataTaxon(normalizedScientificName, fetchImpl).catch(() => null);
+  if (!entity) return subject;
+  return {
+    ...subject,
+    instagramCommonName: instagramCommonName || getLocalizedCommonName(entity, ENGLISH_LANGUAGE_CODES, normalizedScientificName),
+    rednoteCommonName: rednoteCommonName || getLocalizedCommonName(entity, CHINESE_LANGUAGE_CODES, normalizedScientificName),
   };
 }
 
