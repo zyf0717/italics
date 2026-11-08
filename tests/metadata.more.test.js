@@ -237,6 +237,18 @@ describe('buildSubjectLine', () => {
     expect(buildSubjectLine(subject, 'rednote')).toBe('白胸翡翠\nWhite-throated Kingfisher\n𝘏𝘢𝘭𝘤𝘺𝘰𝘯 𝘴𝘮𝘺𝘳𝘯𝘦𝘯𝘴𝘪𝘴');
   });
 
+  it('appends the IUCN status suffix on instagram', () => {
+    const endangered = { ...subject, conservationStatus: { code: 'EN', en: 'Endangered', zh: '濒危' } };
+    expect(buildSubjectLine(endangered, 'instagram'))
+      .toBe('White-throated Kingfisher (𝘏𝘢𝘭𝘤𝘺𝘰𝘯 𝘴𝘮𝘺𝘳𝘯𝘦𝘯𝘴𝘪𝘴) — Endangered (IUCN).');
+  });
+
+  it('adds a Chinese status line after the scientific name on rednote', () => {
+    const endangered = { ...subject, conservationStatus: { code: 'EN', en: 'Endangered', zh: '濒危' } };
+    expect(buildSubjectLine(endangered, 'rednote'))
+      .toBe('白胸翡翠\nWhite-throated Kingfisher\n𝘏𝘢𝘭𝘤𝘺𝘰𝘯 𝘴𝘮𝘺𝘳𝘯𝘦𝘯𝘴𝘪𝘴\n濒危 (EN)');
+  });
+
   it('preserves capitalization in compound group names on both platforms', () => {
     const hainan = {
       scientificName: 'Polyplectron katsumatae',
@@ -256,7 +268,7 @@ describe('lookupTaxonCommonNames', () => {
   const jsonResponse = (data) => ({ ok: true, json: async () => data });
   const ebirdResponse = (name) => jsonResponse(name ? [{ sciName: scientificName, comName: name }] : []);
 
-  function withWikidata(fetchMock, taxonName = scientificName) {
+  function withWikidata(fetchMock, taxonName = scientificName, extraClaims = {}) {
     return fetchMock
       .mockResolvedValueOnce(jsonResponse({ search: [{ id: 'Q1' }, { id: 'Q2' }] }))
       .mockResolvedValueOnce(jsonResponse({ entities: {
@@ -266,6 +278,7 @@ describe('lookupTaxonCommonNames', () => {
         Q2: { labels: { zh: { value: chineseName } }, claims: {
           P225: [{ mainsnak: { datavalue: { value: taxonName } } }],
           P1843: [{ mainsnak: { datavalue: { value: { text: 'Hainan peacock-pheasant', language: 'en' } } } }],
+          ...extraClaims,
         } },
       } }));
   }
@@ -277,20 +290,21 @@ describe('lookupTaxonCommonNames', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('gets both names directly from eBird without querying Wikidata', async () => {
+  it('prefers eBird names even when Wikidata also resolves the taxon', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(ebirdResponse(englishName))
       .mockResolvedValueOnce(ebirdResponse(chineseName));
+    withWikidata(fetchMock);
 
     await expect(lookupTaxonCommonNames(' Polyplectron   katsumatae ', fetchMock)).resolves.toEqual({
       scientificName,
       instagramCommonName: englishName,
       rednoteCommonName: chineseName,
     });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls.map(([url]) => url.searchParams.get('locale'))).toEqual(['en', 'zh_SIM']);
-    for (const [url] of fetchMock.mock.calls) {
-      expect(url.origin).toBe('https://api.ebird.org');
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    const ebirdCalls = fetchMock.mock.calls.filter(([url]) => url.origin === 'https://api.ebird.org');
+    expect(ebirdCalls.map(([url]) => url.searchParams.get('locale'))).toEqual(['en', 'zh_SIM']);
+    for (const [url] of ebirdCalls) {
       expect(url.searchParams.get('species')).toBe(scientificName);
     }
   });
@@ -351,6 +365,65 @@ describe('lookupTaxonCommonNames', () => {
       scientificName,
       instagramCommonName: '',
       rednoteCommonName: '',
+    });
+  });
+
+  const p141 = (itemId, rank = 'normal') => ({
+    rank,
+    mainsnak: { datavalue: { value: { id: itemId } } },
+  });
+
+  it('reads the IUCN status from the P141 claim', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(ebirdResponse(englishName))
+      .mockResolvedValueOnce(ebirdResponse(chineseName));
+    withWikidata(fetchMock, scientificName, { P141: [p141('Q96377276')] });
+
+    await expect(lookupTaxonCommonNames(scientificName, fetchMock)).resolves.toEqual({
+      scientificName,
+      instagramCommonName: englishName,
+      rednoteCommonName: chineseName,
+      conservationStatus: { code: 'EN', en: 'Endangered', zh: '濒危' },
+    });
+  });
+
+  it('omits the status when it is Least Concern', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(ebirdResponse(englishName))
+      .mockResolvedValueOnce(ebirdResponse(chineseName));
+    withWikidata(fetchMock, scientificName, { P141: [p141('Q211005', 'preferred')] });
+
+    await expect(lookupTaxonCommonNames(scientificName, fetchMock)).resolves.toEqual({
+      scientificName,
+      instagramCommonName: englishName,
+      rednoteCommonName: chineseName,
+    });
+  });
+
+  it('skips deprecated P141 claims', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(ebirdResponse(englishName))
+      .mockResolvedValueOnce(ebirdResponse(chineseName));
+    withWikidata(fetchMock, scientificName, { P141: [p141('Q96377276', 'deprecated'), p141('Q278113')] });
+
+    await expect(lookupTaxonCommonNames(scientificName, fetchMock)).resolves.toEqual({
+      scientificName,
+      instagramCommonName: englishName,
+      rednoteCommonName: chineseName,
+      conservationStatus: { code: 'VU', en: 'Vulnerable', zh: '易危' },
+    });
+  });
+
+  it('keeps the subject when the status lookup fails', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(ebirdResponse(englishName))
+      .mockResolvedValueOnce(ebirdResponse(chineseName))
+      .mockRejectedValue(new Error('offline'));
+
+    await expect(lookupTaxonCommonNames(scientificName, fetchMock)).resolves.toEqual({
+      scientificName,
+      instagramCommonName: englishName,
+      rednoteCommonName: chineseName,
     });
   });
 });

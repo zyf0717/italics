@@ -213,6 +213,27 @@ const REDNOTE_BODY_TAGS = [
 const WIKIDATA_API_URL = "https://www.wikidata.org/w/api.php";
 const TAXON_NAME_PROPERTY = "P225";
 const TAXON_COMMON_NAME_PROPERTY = "P1843";
+const IUCN_CONSERVATION_STATUS_PROPERTY = "P141";
+
+/**
+ * Wikidata items used as P141 (IUCN Conservation Status) values.
+ * Q-ids verified against live Wikidata on 2026-11-08 (all distinct P141 values).
+ * Least Concern (Q211005) is deliberately absent: the caption only shows
+ * non-LC statuses, so an unknown or LC item yields no status line.
+ */
+const IUCN_STATUS_BY_ENTITY = Object.freeze({
+  Q237350:  { code: "EX", en: "Extinct",               zh: "灭绝" },
+  Q239509:  { code: "EW", en: "Extinct in the Wild",   zh: "野外灭绝" },
+  Q219127:  { code: "CR", en: "Critically Endangered", zh: "极危" },
+  Q96377276: { code: "EN", en: "Endangered",           zh: "濒危" },
+  Q278113:  { code: "VU", en: "Vulnerable",           zh: "易危" },
+  Q719675:  { code: "NT", en: "Near Threatened",      zh: "近危" },
+  Q3245245: { code: "DD", en: "Data Deficient",       zh: "数据缺乏" },
+  Q56660252: { code: "DD", en: "Data Deficient",      zh: "数据缺乏" },
+  Q3350324: { code: "NE", en: "Not Evaluated",        zh: "未评估" },
+  Q158862:  { code: "CD", en: "Conservation Dependent", zh: "依赖保育" },
+  Q6693756: { code: "LR", en: "Lower Risk",           zh: "低危" },
+});
 const ENGLISH_LANGUAGE_CODES = ["en"];
 const CHINESE_LANGUAGE_CODES = ["zh-cn", "zh-hans", "zh"];
 
@@ -458,23 +479,45 @@ async function lookupWikidataTaxon(scientificName, fetchImpl) {
       normalizeScientificName(name).toLowerCase() === normalizedName));
 }
 
-/** Looks up English and Chinese names in eBird, using Wikidata only to fill missing names. */
+/**
+ * Extracts the IUCN conservation status from a taxon entity's P141 claims.
+ * Preferred-rank claims come first in Wikidata responses; deprecated ranks are skipped.
+ * Returns null when absent, deprecated, unrecognised, or Least Concern.
+ * @param {Record<string, unknown> | null | undefined} entity
+ * @returns {{ code: string, en: string, zh: string } | null}
+ */
+function getConservationStatus(entity) {
+  for (const claim of getEntityClaims(entity, IUCN_CONSERVATION_STATUS_PROPERTY)) {
+    if (claim?.rank === "deprecated") continue;
+    const itemId = claim?.mainsnak?.datavalue?.value?.id;
+    const status = itemId ? IUCN_STATUS_BY_ENTITY[itemId] : undefined;
+    if (status) return status;
+  }
+  return null;
+}
+
+/**
+ * Looks up English and Chinese names in eBird, using Wikidata to fill missing
+ * names and to read the IUCN conservation status (P141).
+ */
 export async function lookupTaxonCommonNames(scientificName, fetchImpl = fetch) {
   const normalizedScientificName = normalizeScientificName(scientificName);
   if (!normalizedScientificName) return null;
 
-  const [instagramCommonName, rednoteCommonName] = await Promise.all([
+  const [instagramCommonName, rednoteCommonName, entity] = await Promise.all([
     lookupEbirdCommonName(normalizedScientificName, "en", fetchImpl),
     lookupEbirdCommonName(normalizedScientificName, "zh_SIM", fetchImpl),
+    lookupWikidataTaxon(normalizedScientificName, fetchImpl).catch(() => null),
   ]);
+
+  const conservationStatus = getConservationStatus(entity);
   const subject = {
     scientificName: normalizedScientificName,
     instagramCommonName,
     rednoteCommonName,
+    ...(conservationStatus ? { conservationStatus } : {}),
   };
   if (instagramCommonName && rednoteCommonName) return subject;
-
-  const entity = await lookupWikidataTaxon(normalizedScientificName, fetchImpl).catch(() => null);
   if (!entity) return subject;
   return {
     ...subject,
@@ -485,7 +528,8 @@ export async function lookupTaxonCommonNames(scientificName, fetchImpl = fetch) 
 
 /**
  * Formats the optional species line for the selected platform.
- * @param {{ scientificName?: string, instagramCommonName?: string, rednoteCommonName?: string } | null} subject
+ * A non-LC conservationStatus adds a threat line (rednote) or suffix (instagram).
+ * @param {{ scientificName?: string, instagramCommonName?: string, rednoteCommonName?: string, conservationStatus?: { code: string, en: string, zh: string } | null } | null} subject
  * @param {string} platform
  * @returns {string}
  */
@@ -496,13 +540,16 @@ export function buildSubjectLine(subject, platform) {
   const italicScientificName = toUnicodeItalic(scientificName);
   const englishCommonName = normalizeScientificName(subject?.instagramCommonName);
   const chineseCommonName = normalizeScientificName(subject?.rednoteCommonName);
+  const status = subject?.conservationStatus ?? null;
 
   if (platform === "rednote") {
-    return [chineseCommonName, englishCommonName, italicScientificName].filter(Boolean).join("\n");
+    const statusLine = status ? `${status.zh} (${status.code})` : "";
+    return [chineseCommonName, englishCommonName, italicScientificName, statusLine].filter(Boolean).join("\n");
   }
 
-  if (!englishCommonName) return `${italicScientificName}.`;
-  return `${englishCommonName} (${italicScientificName}).`;
+  const statusSuffix = status ? ` — ${status.en} (IUCN)` : "";
+  if (!englishCommonName) return `${italicScientificName}${statusSuffix}.`;
+  return `${englishCommonName} (${italicScientificName})${statusSuffix}.`;
 }
 
 function getDateLine(data, platform) {
