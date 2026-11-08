@@ -218,9 +218,10 @@ const IUCN_CONSERVATION_STATUS_PROPERTY = "P141";
 /**
  * Wikidata items used as P141 (IUCN Conservation Status) values.
  * Q-ids verified against live Wikidata on 2026-11-08 (all distinct P141 values).
- * Least Concern (Q211005), Data Deficient (Q3245245/Q56660252) and Not Evaluated
- * (Q3350324) are deliberately absent: the caption only shows statuses that
- * assert an actual threat, so an unknown or excluded item yields no status line.
+ * Only current-system threat categories are mapped: Least Concern, Data
+ * Deficient and Not Evaluated assert no threat, and the legacy Lower Risk /
+ * Conservation Dependent items appear on no bird (IUCN fully reassessed all
+ * birds under the current system), so any other item yields no status line.
  */
 const IUCN_STATUS_BY_ENTITY = Object.freeze({
   Q237350:  { code: "EX", en: "Extinct",               zh: "灭绝" },
@@ -229,8 +230,6 @@ const IUCN_STATUS_BY_ENTITY = Object.freeze({
   Q96377276: { code: "EN", en: "Endangered",           zh: "濒危" },
   Q278113:  { code: "VU", en: "Vulnerable",           zh: "易危" },
   Q719675:  { code: "NT", en: "Near Threatened",      zh: "近危" },
-  Q158862:  { code: "CD", en: "Conservation Dependent", zh: "依赖保育" },
-  Q6693756: { code: "LR", en: "Lower Risk",           zh: "低危" },
 });
 const ENGLISH_LANGUAGE_CODES = ["en"];
 const CHINESE_LANGUAGE_CODES = ["zh-cn", "zh-hans", "zh"];
