@@ -218,8 +218,9 @@ const IUCN_CONSERVATION_STATUS_PROPERTY = "P141";
 /**
  * Wikidata items used as P141 (IUCN Conservation Status) values.
  * Q-ids verified against live Wikidata on 2026-11-08 (all distinct P141 values).
- * Least Concern (Q211005) is deliberately absent: the caption only shows
- * non-LC statuses, so an unknown or LC item yields no status line.
+ * Least Concern (Q211005), Data Deficient (Q3245245/Q56660252) and Not Evaluated
+ * (Q3350324) are deliberately absent: the caption only shows statuses that
+ * assert an actual threat, so an unknown or excluded item yields no status line.
  */
 const IUCN_STATUS_BY_ENTITY = Object.freeze({
   Q237350:  { code: "EX", en: "Extinct",               zh: "灭绝" },
@@ -228,9 +229,6 @@ const IUCN_STATUS_BY_ENTITY = Object.freeze({
   Q96377276: { code: "EN", en: "Endangered",           zh: "濒危" },
   Q278113:  { code: "VU", en: "Vulnerable",           zh: "易危" },
   Q719675:  { code: "NT", en: "Near Threatened",      zh: "近危" },
-  Q3245245: { code: "DD", en: "Data Deficient",       zh: "数据缺乏" },
-  Q56660252: { code: "DD", en: "Data Deficient",      zh: "数据缺乏" },
-  Q3350324: { code: "NE", en: "Not Evaluated",        zh: "未评估" },
   Q158862:  { code: "CD", en: "Conservation Dependent", zh: "依赖保育" },
   Q6693756: { code: "LR", en: "Lower Risk",           zh: "低危" },
 });

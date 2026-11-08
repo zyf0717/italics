@@ -400,6 +400,19 @@ describe('lookupTaxonCommonNames', () => {
     });
   });
 
+  it.each(['Q3245245', 'Q56660252', 'Q3350324'])('omits non-threatening status %s (DD/NE)', async (itemId) => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(ebirdResponse(englishName))
+      .mockResolvedValueOnce(ebirdResponse(chineseName));
+    withWikidata(fetchMock, scientificName, { P141: [p141(itemId)] });
+
+    await expect(lookupTaxonCommonNames(scientificName, fetchMock)).resolves.toEqual({
+      scientificName,
+      instagramCommonName: englishName,
+      rednoteCommonName: chineseName,
+    });
+  });
+
   it('skips deprecated P141 claims', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(ebirdResponse(englishName))
