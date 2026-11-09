@@ -566,13 +566,27 @@ function getCameraSummary(data, platform, dotSight) {
   return `${resolveGear(body, lens, platform, focalLength)}${dotSight ? " + DF-M1" : ""}`;
 }
 
+/**
+ * Formats EXIF ExposureCompensation as e.g. "-1EV", "+0.3EV". Returns null when missing or zero.
+ * Thirds like -1/3 are rounded to one decimal (-0.3EV), matching camera-display convention.
+ * @param {unknown} ev
+ * @returns {string|null}
+ */
+function formatExposureCompensation(ev) {
+  if (typeof ev !== "number" || !isFinite(ev)) return null;
+  const rounded = Math.round(ev * 10) / 10;
+  if (rounded === 0) return null;
+  return `${rounded > 0 ? "+" : ""}${rounded}EV`;
+}
+
 function getRednoteSettingsValue(data, tripod) {
   const focal    = data.FocalLength != null ? `${Math.round(data.FocalLength)}mm` : null;
   const aperture = data.FNumber     != null ? `f/${data.FNumber}` : null;
   const shutter  = formatShutterSpeed(data.ExposureTime);
   const iso      = data.ISO         != null ? `ISO ${data.ISO}` : null;
-  const handheld = tripod ? "三角架" : "手持";
-  return [focal, aperture, shutter, iso, handheld].filter(Boolean).join(" | ");
+  const ev       = formatExposureCompensation(data.ExposureCompensation);
+  const handheld = tripod ? "三脚架" : "手持";
+  return [focal, aperture, shutter, iso, ev, handheld].filter(Boolean).join(" | ");
 }
 
 function getRednoteSettingsLine(data, tripod) {

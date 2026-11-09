@@ -112,6 +112,24 @@ describe('buildSummary', () => {
     expect(s).toContain('\n\n#观鸟 #鸟类摄影 #白胸翡翠');
   });
 
+  it('includes exposure compensation in rednote settings when present', () => {
+    const location = { place: '', countryCode: '' };
+    const data = { ...sharedBaseData, FocalLength: 600, ExposureTime: 1 / 30, ISO: 400, ExposureCompensation: -1 };
+    const s = buildSummary(data, location, { platform: 'rednote', tripod: true });
+    expect(s).toContain('⚙️: 600mm | f/6.3 | 1/30s | ISO 400 | -1EV | 三脚架');
+  });
+
+  it('formats fractional and positive exposure compensation, omits zero or missing', () => {
+    const location = { place: '', countryCode: '' };
+    const third = buildSummary({ ...sharedBaseData, ExposureCompensation: -1 / 3 }, location, { platform: 'rednote' });
+    expect(third).toContain('| -0.3EV | 手持');
+    const positive = buildSummary({ ...sharedBaseData, ExposureCompensation: 0.7 }, location, { platform: 'rednote' });
+    expect(positive).toContain('| +0.7EV |');
+    const zero = buildSummary({ ...sharedBaseData, ExposureCompensation: 0 }, location, { platform: 'rednote' });
+    expect(zero).toContain('ISO 100 | 手持');
+    expect(zero).not.toContain('EV');
+  });
+
   it('still renders rednote tags cleanly when gear output is disabled', () => {
     const location = { place: '', countryCode: '' };
     const subject = { scientificName: 'Halcyon smyrnensis', rednoteCommonName: '白胸翡翠' };
